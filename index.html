@@ -4,390 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tekken Balkan ELO Leaderboard</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  
+  <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #090a0f;
-      --card: #11131c;
-      --card-alt: #0d0f17;
-      --border: #1f2433;
-      --text: #f3f4f6;
-      --muted: #9ca3af;
-      --accent: #e11d48;
-      --accent-light: #fb7185;
-      --accent-bg: rgba(225, 29, 72, 0.15);
-      --green: #34d399;
-    }
-    body.era-t7 {
-      --accent: #d97706;
-      --accent-light: #fbbf24;
-      --accent-bg: rgba(217, 119, 6, 0.15);
-    }
-    body.era-tournaments {
-      --accent: #2563eb;
-      --accent-light: #60a5fa;
-      --accent-bg: rgba(37, 99, 235, 0.15);
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      padding-bottom: 60px;
-    }
-    .tekken-font { font-family: 'Chakra Petch', sans-serif; }
-    .container { max-width: 1024px; margin: 0 auto; padding: 0 16px; }
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
 
-    /* HEADER */
-    header {
-      border-bottom: 1px solid var(--border);
-      background: radial-gradient(circle at top, var(--accent-bg), transparent 70%);
-      padding: 40px 16px;
-      text-align: center;
-    }
-    .era-badge {
-      display: inline-block;
-      padding: 4px 12px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      background: var(--accent-bg);
-      color: var(--accent-light);
-      border: 1px solid var(--accent);
-      border-radius: 999px;
-    }
-    h1 {
-      font-size: clamp(28px, 5vw, 54px);
-      font-weight: 700;
-      text-transform: uppercase;
-      font-style: italic;
-      letter-spacing: 1px;
-      margin-top: 12px;
-    }
-    h1 span { color: var(--accent-light); }
-    .subtitle {
-      color: var(--muted);
-      font-size: 14px;
-      max-width: 560px;
-      margin: 8px auto 0;
-      line-height: 1.5;
-    }
-
-    /* TABS */
-    .tabs {
-      display: inline-flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      padding: 4px;
-      margin-top: 24px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      gap: 4px;
-    }
-    .tab-btn {
-      padding: 10px 22px;
-      border-radius: 8px;
-      font-weight: 700;
-      font-size: 14px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      border: none;
-      cursor: pointer;
-      background: transparent;
-      color: var(--muted);
-    }
-    .tab-btn.active {
-      background: var(--accent);
-      color: #fff;
-    }
-
-    /* TOOLBAR */
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: flex-start;
-      align-items: center;
-      gap: 12px;
-      margin: 28px 0 18px;
-    }
-    .search-box {
-      display: flex;
-      gap: 8px;
-      flex: 1;
-      max-width: 340px;
-    }
-    .search-input {
-      width: 100%;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 14px;
-      color: #fff;
-      outline: none;
-    }
-    .search-input:focus { border-color: var(--accent); }
-    .refresh-btn {
-      background: var(--card);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 0 14px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-    .refresh-btn:hover { border-color: var(--accent-light); }
-
-    /* TABLE */
-    .table-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
-    }
-    .table-scroll { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; text-align: left; }
-    th {
-      background: var(--card-alt);
-      border-bottom: 1px solid var(--border);
-      color: var(--muted);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      padding: 14px 16px;
-    }
-    td {
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--border);
-      font-size: 14px;
-    }
-    tr.top50-row { cursor: pointer; }
-    tr.top50-row:hover { background: rgba(255, 255, 255, 0.04); }
-    tr.locked-row { opacity: 0.55; background: var(--card-alt); cursor: not-allowed; }
-
-    .rank-badge {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-weight: 700;
-      font-size: 13px;
-    }
-    .rank-1 { background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b; color: #fde68a; }
-    .rank-2 { background: rgba(148, 163, 184, 0.2); border: 1px solid #94a3b8; color: #e2e8f0; }
-    .rank-3 { background: rgba(180, 83, 9, 0.2); border: 1px solid #d97706; color: #fdba74; }
-
-    .country-tag {
-      font-size: 10px;
-      padding: 2px 6px;
-      background: #1f2433;
-      color: #d1d5db;
-      border-radius: 4px;
-      font-weight: 700;
-      text-transform: uppercase;
-      margin-left: 6px;
-    }
-    .char-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .btn-card {
-      padding: 4px 10px;
-      font-size: 12px;
-      font-weight: 600;
-      border-radius: 6px;
-      background: var(--accent-bg);
-      color: var(--accent-light);
-      border: 1px solid var(--accent);
-      display: inline-block;
-    }
-
-    /* PAGINATION */
-    .pagination {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 20px;
-      background: var(--card-alt);
-    }
-    .page-btn {
-      padding: 7px 14px;
-      border-radius: 8px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      color: var(--text);
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-    .page-btn:not(:disabled):hover { border-color: var(--accent-light); }
-    .page-indicator {
-      font-size: 12px;
-      font-weight: 700;
-      padding: 7px 12px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-    }
-
-    /* ROADMAP (TOURNAMENTS) */
-    .roadmap-wrapper {
-      position: relative;
-      padding: 10px 0 20px 28px;
-      margin-top: 10px;
-    }
-    .roadmap-wrapper::before {
-      content: '';
-      position: absolute;
-      left: 7px;
-      top: 18px;
-      bottom: 18px;
-      width: 2px;
-      background: linear-gradient(180deg, var(--accent), var(--border));
-    }
-    .roadmap-item {
-      position: relative;
-      margin-bottom: 20px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 18px 20px;
-      cursor: pointer;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      gap: 14px;
-    }
-    .roadmap-item:hover {
-      border-color: var(--accent-light);
-      background: #151824;
-    }
-    .roadmap-dot {
-      position: absolute;
-      left: -27px;
-      top: 24px;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: var(--accent);
-      border: 3px solid var(--bg);
-      box-shadow: 0 0 0 2px var(--accent);
-    }
-    .roadmap-dot.completed {
-      background: var(--muted);
-      box-shadow: 0 0 0 2px var(--border);
-    }
-    .roadmap-dot.live {
-      background: var(--green);
-      box-shadow: 0 0 10px var(--green);
-    }
-    .t-status {
-      display: inline-block;
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      padding: 3px 8px;
-      border-radius: 6px;
-      margin-bottom: 6px;
-    }
-    .t-status.upcoming { background: var(--accent-bg); color: var(--accent-light); border: 1px solid var(--accent); }
-    .t-status.completed { background: #1f2433; color: var(--muted); border: 1px solid #2e364f; }
-    .t-status.live { background: rgba(52, 211, 153, 0.15); color: var(--green); border: 1px solid var(--green); }
-
-    .t-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 14px;
-      font-size: 13px;
-      color: var(--muted);
-      margin-top: 6px;
-    }
-
-    /* MODAL */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.82);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-      z-index: 50;
-    }
-    .modal-overlay.open { display: flex; }
-    .modal-box {
-      background: var(--card);
-      border: 1px solid #2e364f;
-      border-radius: 16px;
-      max-width: 480px;
-      width: 100%;
-      overflow: hidden;
-    }
-    .modal-header {
-      background: linear-gradient(90deg, var(--accent-bg), var(--card));
-      padding: 20px 24px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-    }
-    .close-btn {
-      background: none;
-      border: none;
-      color: var(--muted);
-      font-size: 26px;
-      cursor: pointer;
-      line-height: 1;
-    }
-    .close-btn:hover { color: #fff; }
-    .modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
-    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center; }
-    .stat-box { background: var(--card-alt); border: 1px solid var(--border); padding: 12px 8px; border-radius: 10px; }
-    .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; }
-    .stat-val { font-size: 20px; font-weight: 700; margin-top: 4px; }
-    .bar-bg { width: 100%; height: 8px; background: #1f2433; border-radius: 99px; overflow: hidden; margin-top: 6px; }
-    .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--green)); }
-    .info-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: var(--card-alt);
-      border: 1px solid var(--border);
-      padding: 12px 14px;
-      border-radius: 10px;
-      font-size: 13px;
-      gap: 12px;
-    }
-    .startgg-btn {
-      display: block;
-      width: 100%;
-      text-align: center;
-      background: var(--accent);
-      color: #fff;
-      font-weight: 700;
-      text-decoration: none;
-      padding: 13px;
-      border-radius: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      font-size: 14px;
-      margin-top: 4px;
-    }
-    .startgg-btn:hover { opacity: 0.92; }
-
-    .hidden { display: none !important; }
-
-    @media (max-width: 640px) {
-      .hide-sm { display: none; }
-    }
-  </style>
+  <!-- External Libraries & App Scripts (loaded in order with defer) -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script defer src="js/config.js"></script>
+  <script defer src="js/data.js"></script>
+  <script defer src="js/app.js"></script>
 </head>
 <body>
 
@@ -396,13 +24,13 @@
       <span id="era-badge" class="era-badge">Current Season</span>
       <h1 class="tekken-font">Tekken Balkan <span id="title-accent">ELO</span></h1>
       <p id="header-subtitle" class="subtitle">
-        Official Tekken Balkan community leaderboard. Click on any <strong style="color:#fff">Top 50</strong> player for detailed stats.
+        Official Tekken Balkan community leaderboard. Click on any <strong class="text-white">Top 50</strong> player for detailed stats.
       </p>
 
       <div class="tabs">
-        <button id="btn-t8" onclick="switchTab('T8')" class="tab-btn tekken-font active">🔥 Tekken 8</button>
-        <button id="btn-t7" onclick="switchTab('T7')" class="tab-btn tekken-font">🏆 Tekken 7 Legacy</button>
-        <button id="btn-tournaments" onclick="switchTab('TOURNAMENTS')" class="tab-btn tekken-font">📅 Tournaments</button>
+        <button id="btn-t8" data-tab="T8" class="tab-btn tekken-font active">🔥 Tekken 8</button>
+        <button id="btn-t7" data-tab="T7" class="tab-btn tekken-font">🏆 Tekken 7 Legacy</button>
+        <button id="btn-tournaments" data-tab="TOURNAMENTS" class="tab-btn tekken-font">📅 Tournaments</button>
       </div>
     </div>
   </header>
@@ -410,8 +38,8 @@
   <main class="container">
     <div class="toolbar">
       <div class="search-box">
-        <input type="text" id="search-input" oninput="onSearchInput()" placeholder="Search player..." class="search-input">
-        <button onclick="forceRefresh()" class="refresh-btn" title="Fetch latest updates from Google Sheets">↻ Refresh</button>
+        <input type="text" id="search-input" placeholder="Search player..." class="search-input">
+        <button id="btn-refresh" class="refresh-btn" title="Fetch latest updates from Google Sheets">↻ Refresh</button>
       </div>
     </div>
 
@@ -421,46 +49,46 @@
         <table>
           <thead>
             <tr>
-              <th style="width:80px; text-align:center">Rank</th>
+              <th class="col-rank">Rank</th>
               <th>Player</th>
-              <th class="hide-sm" style="text-align:center">Matches</th>
-              <th class="hide-sm" style="text-align:center">Win Rate</th>
-              <th style="text-align:right">ELO Rating</th>
-              <th style="width:110px; text-align:center">Profile</th>
+              <th class="hide-sm text-center">Matches</th>
+              <th class="hide-sm text-center">Win Rate</th>
+              <th class="text-right">ELO Rating</th>
+              <th class="col-profile">Profile</th>
             </tr>
           </thead>
-          <tbody id="leaderboard-body" onclick="handleTableClick(event)"></tbody>
+          <tbody id="leaderboard-body"></tbody>
         </table>
       </div>
 
       <div class="pagination">
-        <div id="pagination-info" style="font-size:12px; color:var(--muted)">Loading...</div>
-        <div style="display:flex; align-items:center; gap:8px">
-          <button id="btn-prev-page" onclick="changePage(currentPage - 1)" class="page-btn">← Prev</button>
+        <div id="pagination-info" class="pagination-info">Loading...</div>
+        <div class="pagination-controls">
+          <button id="btn-prev-page" class="page-btn">← Prev</button>
           <span id="page-indicator" class="page-indicator tekken-font">1 / 1</span>
-          <button id="btn-next-page" onclick="changePage(currentPage + 1)" class="page-btn">Next →</button>
+          <button id="btn-next-page" class="page-btn">Next →</button>
         </div>
       </div>
     </div>
 
     <!-- SECTION 2: TOURNAMENT ROADMAP -->
     <div id="tournaments-section" class="hidden">
-      <div id="roadmap-list" class="roadmap-wrapper" onclick="handleTournamentClick(event)"></div>
+      <div id="roadmap-list" class="roadmap-wrapper"></div>
     </div>
   </main>
 
   <!-- MODAL FOR TOP 50 PLAYERS -->
-  <div id="player-modal" onclick="closePlayerModal(event)" class="modal-overlay">
-    <div class="modal-box" onclick="event.stopPropagation()">
+  <div id="player-modal" class="modal-overlay">
+    <div class="modal-box">
       <div class="modal-header">
         <div>
-          <div style="display:flex; align-items:center; gap:8px">
-            <span id="modal-rank" class="tekken-font" style="padding:2px 8px; background:var(--accent); color:#fff; font-weight:700; font-size:12px; border-radius:4px">#1</span>
-            <span id="modal-country" style="font-size:12px; color:var(--muted); font-weight:700; text-transform:uppercase"></span>
+          <div class="modal-badge-row">
+            <span id="modal-rank" class="tekken-font modal-rank-pill">#1</span>
+            <span id="modal-country" class="modal-country-label"></span>
           </div>
-          <h2 id="modal-player" class="tekken-font" style="font-size:28px; font-weight:700; text-transform:uppercase; margin-top:4px">Player</h2>
+          <h2 id="modal-player" class="tekken-font modal-title-lg">Player</h2>
         </div>
-        <button onclick="hidePlayerModal()" class="close-btn">&times;</button>
+        <button id="close-player-modal" class="close-btn">&times;</button>
       </div>
 
       <div class="modal-body">
@@ -475,63 +103,63 @@
           </div>
           <div class="stat-box">
             <div class="stat-label">Win Rate</div>
-            <div id="modal-winrate" class="stat-val tekken-font" style="color:var(--green)">0%</div>
+            <div id="modal-winrate" class="stat-val tekken-font text-green">0%</div>
           </div>
         </div>
 
         <div>
-          <div style="display:flex; justify-content:space-between; font-size:12px">
-            <span style="color:var(--muted); font-weight:600; text-transform:uppercase">Match Win Rate</span>
-            <span id="modal-winrate-text" style="color:var(--green); font-weight:700">0%</span>
+          <div class="winrate-header">
+            <span class="info-label">Match Win Rate</span>
+            <span id="modal-winrate-text" class="text-green font-bold">0%</span>
           </div>
           <div class="bar-bg">
-            <div id="modal-winrate-bar" class="bar-fill" style="width:0%"></div>
+            <div id="modal-winrate-bar" class="bar-fill"></div>
           </div>
         </div>
 
         <div class="info-row">
-          <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">Main Character:</span>
-          <span id="modal-main-detail" class="tekken-font" style="color:var(--accent-light); font-weight:700; font-size:16px">Not specified</span>
+          <span class="info-label">Main Character:</span>
+          <span id="modal-main-detail" class="tekken-font main-char-value">Not specified</span>
         </div>
 
         <div class="info-row">
-          <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">Country:</span>
-          <span id="modal-country-detail" style="font-weight:700">Not specified</span>
+          <span class="info-label">Country:</span>
+          <span id="modal-country-detail" class="font-bold">Not specified</span>
         </div>
       </div>
     </div>
   </div>
 
   <!-- MODAL FOR TOURNAMENT DETAILS -->
-  <div id="tournament-modal" onclick="closeTournamentModal(event)" class="modal-overlay">
-    <div class="modal-box" onclick="event.stopPropagation()">
+  <div id="tournament-modal" class="modal-overlay">
+    <div class="modal-box">
       <div class="modal-header">
         <div>
           <span id="t-modal-status" class="t-status upcoming">Upcoming</span>
-          <h2 id="t-modal-name" class="tekken-font" style="font-size:24px; font-weight:700; text-transform:uppercase; margin-top:4px">Tournament Name</h2>
+          <h2 id="t-modal-name" class="tekken-font modal-title-md">Tournament Name</h2>
         </div>
-        <button onclick="hideTournamentModal()" class="close-btn">&times;</button>
+        <button id="close-tournament-modal" class="close-btn">&times;</button>
       </div>
 
       <div class="modal-body">
         <div class="info-row">
-          <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">📅 Date:</span>
-          <span id="t-modal-date" style="font-weight:700">TBA</span>
+          <span class="info-label">📅 Date:</span>
+          <span id="t-modal-date" class="font-bold">TBA</span>
         </div>
 
         <div class="info-row">
-          <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">⏰ Time:</span>
-          <span id="t-modal-time" style="font-weight:700">TBA</span>
+          <span class="info-label">⏰ Time:</span>
+          <span id="t-modal-time" class="font-bold">TBA</span>
         </div>
 
         <div class="info-row">
-          <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">📍 Location:</span>
-          <span id="t-modal-location" style="font-weight:700; text-align:right">TBA</span>
+          <span class="info-label">📍 Location:</span>
+          <span id="t-modal-location" class="font-bold text-right">TBA</span>
         </div>
 
-        <div id="t-modal-desc-box" class="info-row" style="flex-direction:column; align-items:flex-start">
-          <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">ℹ️ Details:</span>
-          <p id="t-modal-desc" style="color:#d1d5db; line-height:1.5; font-size:13px"></p>
+        <div id="t-modal-desc-box" class="info-row info-row-col">
+          <span class="info-label">ℹ️ Details:</span>
+          <p id="t-modal-desc" class="modal-desc-text"></p>
         </div>
 
         <a id="t-modal-link" href="#" target="_blank" rel="noopener noreferrer" class="startgg-btn tekken-font">
@@ -541,387 +169,5 @@
     </div>
   </div>
 
-  <script>
-
-    const SHEET_URLS = {
-      T8: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=1897594659&single=true&output=csv",
-      T7: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=1230236970&single=true&output=csv",
-      TOURNAMENTS: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=975571095&single=true&output=csv" 
-    };
-
-    const PAGE_SIZE = 50;
-    const UNLOCKED_LIMIT = 50;
-    let currentPage = 1;
-    let currentTab = 'T8';
-
-    const DATA_STORE = { T8: null, T7: null, TOURNAMENTS: null };
-    let currentDisplayedList = [];
-    let currentDisplayedTournaments = [];
-
-
-    function isValidCsvUrl(url) {
-      return typeof url === 'string' && url.length > 65 && url.includes('output=csv');
-    }
-
-    function normalizePlayerRows(rawRows) {
-      const clean = [];
-      for (let i = 0; i < rawRows.length; i++) {
-        const r = rawRows[i];
-        const player = (r['Player'] || '').trim();
-        if (!player) continue;
-
-        const rank = parseInt(r['Ranking'] || r['Rank'] || (clean.length + 1), 10);
-        const main = (r['Main'] || '').trim();
-        const country = (r['Country'] || r['Drzava'] || '').trim();
-
-        clean.push({
-          rank: isNaN(rank) ? (clean.length + 1) : rank,
-          player: player,
-          elo: (r['Elo'] || '0').trim(),
-          matches: (r['Total Matches'] || '0').trim(),
-          wins: (r['Total Wins'] || '0').trim(),
-          winRate: (r['Win Rate'] || '0%').trim(),
-          main: main,
-          country: country,
-          searchKey: (player + ' ' + main + ' ' + country).toLowerCase()
-        });
-      }
-      return clean;
-    }
-
-    function normalizeTournamentRows(rawRows) {
-      const clean = [];
-      for (let i = 0; i < rawRows.length; i++) {
-        const r = rawRows[i];
-        const name = (r['Tournament'] || r['Turnir'] || r['Naziv'] || r['Name'] || '').trim();
-        if (!name) continue;
-
-        const date = (r['Date'] || r['Datum'] || 'TBA').trim();
-        const time = (r['Time'] || r['Vrijeme'] || 'TBA').trim();
-        const location = (r['Location'] || r['Lokacija'] || 'TBA').trim();
-        const link = (r['Link'] || r['StartGG'] || r['Start.gg'] || r['URL'] || '').trim();
-        const statusRaw = (r['Status'] || 'Upcoming').trim();
-        const desc = (r['Description'] || r['Opis'] || r['Info'] || '').trim();
-
-        let statusType = 'upcoming';
-        const sLower = statusRaw.toLowerCase();
-        if (sLower.includes('comp') || sLower.includes('zavr') || sLower.includes('past') || sLower.includes('done') || sLower.includes('finish')) {
-          statusType = 'completed';
-        } else if (sLower.includes('live') || sLower.includes('danas') || sLower.includes('u tijeku') || sLower.includes('ongoing')) {
-          statusType = 'live';
-        }
-
-        clean.push({
-          name,
-          date,
-          time,
-          location,
-          link,
-          statusRaw,
-          statusType,
-          desc,
-          searchKey: (name + ' ' + location + ' ' + date).toLowerCase()
-        });
-      }
-      return clean;
-    }
-
-    function fetchTabData(tabKey, force = false) {
-      if (DATA_STORE[tabKey] && !force) {
-        if (currentTab === tabKey) renderCurrentView();
-        return;
-      }
-
-      const url = SHEET_URLS[tabKey];
-      if (!isValidCsvUrl(url)) {
-        if (tabKey === 'TOURNAMENTS') {
-          DATA_STORE[tabKey] = normalizeTournamentRows(DEMO_TOURNAMENTS);
-        } else {
-          DATA_STORE[tabKey] = [];
-        }
-        if (currentTab === tabKey) renderCurrentView();
-        return;
-      }
-
-      Papa.parse(url, {
-        download: true,
-        header: true,
-        skipEmptyLines: 'greedy',
-        complete: function(results) {
-          if (tabKey === 'TOURNAMENTS') {
-            DATA_STORE[tabKey] = normalizeTournamentRows(results.data || []);
-          } else {
-            DATA_STORE[tabKey] = normalizePlayerRows(results.data || []);
-          }
-          if (currentTab === tabKey) renderCurrentView();
-        },
-        error: function() {
-          DATA_STORE[tabKey] = tabKey === 'TOURNAMENTS' ? normalizeTournamentRows(DEMO_TOURNAMENTS) : [];
-          if (currentTab === tabKey) renderCurrentView();
-        }
-      });
-    }
-
-    function switchTab(tabKey) {
-      if (currentTab === tabKey) return;
-      currentTab = tabKey;
-      currentPage = 1;
-
-      document.body.classList.remove('era-t7', 'era-tournaments');
-      if (tabKey === 'T7') document.body.classList.add('era-t7');
-      if (tabKey === 'TOURNAMENTS') document.body.classList.add('era-tournaments');
-
-      document.getElementById('btn-t8').classList.toggle('active', tabKey === 'T8');
-      document.getElementById('btn-t7').classList.toggle('active', tabKey === 'T7');
-      document.getElementById('btn-tournaments').classList.toggle('active', tabKey === 'TOURNAMENTS');
-
-      const badge = document.getElementById('era-badge');
-      const subtitle = document.getElementById('header-subtitle');
-      const searchInput = document.getElementById('search-input');
-
-      if (tabKey === 'T8') {
-        badge.innerText = 'Current Season';
-        subtitle.innerHTML = 'Official Tekken Balkan community leaderboard. Click on any <strong style="color:#fff">Top 50</strong> player for detailed stats.';
-        searchInput.placeholder = 'Search player...';
-      } else if (tabKey === 'T7') {
-        badge.innerText = 'Hall of Fame Archive';
-        subtitle.innerHTML = 'Final all-time standings from the Tekken 7 era. Click on any <strong style="color:#fff">Top 50</strong> player for detailed stats.';
-        searchInput.placeholder = 'Search player...';
-      } else {
-        badge.innerText = 'Calendar & Roadmap';
-        subtitle.innerHTML = 'Overview of upcoming and completed community tournaments. Click on any event for location, schedule, and <strong style="color:#fff">Start.gg registration</strong>.';
-        searchInput.placeholder = 'Search tournament or city...';
-      }
-
-      document.getElementById('leaderboard-section').classList.toggle('hidden', tabKey === 'TOURNAMENTS');
-      document.getElementById('tournaments-section').classList.toggle('hidden', tabKey !== 'TOURNAMENTS');
-
-      if (DATA_STORE[tabKey]) {
-        renderCurrentView();
-      } else {
-        fetchTabData(tabKey);
-      }
-    }
-
-    function renderCurrentView() {
-      if (currentTab === 'TOURNAMENTS') {
-        renderTournaments();
-      } else {
-        renderTable();
-      }
-    }
-
-    function forceRefresh() {
-      DATA_STORE[currentTab] = null;
-      if (currentTab === 'TOURNAMENTS') {
-        document.getElementById('roadmap-list').innerHTML = '<div style="color:var(--muted); padding:20px">Refreshing tournaments...</div>';
-      } else {
-        document.getElementById('leaderboard-body').innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--muted)">Refreshing...</td></tr>';
-      }
-      fetchTabData(currentTab, true);
-    }
-
-    function onSearchInput() {
-      currentPage = 1;
-      renderCurrentView();
-    }
-
-    function changePage(newPage) {
-      currentPage = newPage;
-      renderTable();
-      window.scrollTo({ top: 0, behavior: 'instant' });
-    }
-
-    function renderTable() {
-      const allData = DATA_STORE[currentTab] || [];
-      const query = document.getElementById('search-input').value.toLowerCase().trim();
-
-      const filtered = query
-        ? allData.filter(item => item.searchKey.includes(query))
-        : allData;
-
-      const totalItems = filtered.length;
-      const totalPages = Math.ceil(totalItems / PAGE_SIZE) || 1;
-      if (currentPage > totalPages) currentPage = totalPages;
-      if (currentPage < 1) currentPage = 1;
-
-      const startIndex = (currentPage - 1) * PAGE_SIZE;
-      const endIndex = Math.min(startIndex + PAGE_SIZE, totalItems);
-      currentDisplayedList = filtered.slice(startIndex, endIndex);
-
-      let html = '';
-      for (let i = 0; i < currentDisplayedList.length; i++) {
-        const p = currentDisplayedList[i];
-        const isUnlocked = p.rank <= UNLOCKED_LIMIT;
-
-        let rankHtml = `<span class="tekken-font" style="font-weight:700; color:var(--muted)">#${p.rank}</span>`;
-        if (p.rank === 1) rankHtml = `<span class="tekken-font rank-badge rank-1">🥇 #1</span>`;
-        else if (p.rank === 2) rankHtml = `<span class="tekken-font rank-badge rank-2">🥈 #2</span>`;
-        else if (p.rank === 3) rankHtml = `<span class="tekken-font rank-badge rank-3">🥉 #3</span>`;
-
-        html += `
-          <tr class="${isUnlocked ? 'top50-row' : 'locked-row'}" data-idx="${i}">
-            <td style="text-align:center">${rankHtml}</td>
-            <td>
-              <div>
-                <strong style="color:#fff">${p.player}</strong>
-                ${p.country ? `<span class="country-tag">${p.country}</span>` : ''}
-              </div>
-              ${p.main ? `<div class="char-sub">${p.main}</div>` : ''}
-            </td>
-            <td class="hide-sm" style="text-align:center; color:#d1d5db">${p.wins}W / ${p.matches}M</td>
-            <td class="hide-sm" style="text-align:center; font-weight:700; color:var(--green)">${p.winRate}</td>
-            <td class="tekken-font" style="text-align:right; font-size:18px; font-weight:700; color:#fff">${p.elo}</td>
-            <td style="text-align:center">
-              ${isUnlocked
-                ? `<span class="btn-card">Card ↗</span>`
-                : `<span style="font-size:12px; color:var(--muted)">🔒 51+</span>`
-              }
-            </td>
-          </tr>
-        `;
-      }
-
-      document.getElementById('leaderboard-body').innerHTML = html || '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--muted)">No players found</td></tr>';
-
-      const infoEl = document.getElementById('pagination-info');
-      const indicatorEl = document.getElementById('page-indicator');
-      document.getElementById('btn-prev-page').disabled = (currentPage <= 1);
-      document.getElementById('btn-next-page').disabled = (currentPage >= totalPages);
-
-      if (totalItems === 0) {
-        infoEl.innerText = 'No players found';
-        indicatorEl.innerText = '0 / 0';
-      } else {
-        infoEl.innerText = `Showing ${startIndex + 1}–${endIndex} of ${totalItems} players`;
-        indicatorEl.innerText = `Page ${currentPage} / ${totalPages}`;
-      }
-    }
-
-    function renderTournaments() {
-      const allTournaments = DATA_STORE['TOURNAMENTS'] || [];
-      const query = document.getElementById('search-input').value.toLowerCase().trim();
-
-      currentDisplayedTournaments = query
-        ? allTournaments.filter(t => t.searchKey.includes(query))
-        : allTournaments;
-
-      const container = document.getElementById('roadmap-list');
-      if (currentDisplayedTournaments.length === 0) {
-        container.innerHTML = '<div style="color:var(--muted); padding:20px">No tournaments found.</div>';
-        return;
-      }
-
-      let html = '';
-      for (let i = 0; i < currentDisplayedTournaments.length; i++) {
-        const t = currentDisplayedTournaments[i];
-        let statusLabel = 'Upcoming';
-        if (t.statusType === 'completed') statusLabel = 'Completed';
-        else if (t.statusType === 'live') statusLabel = 'Live Now';
-
-        html += `
-          <div class="roadmap-item" data-tidx="${i}">
-            <div class="roadmap-dot ${t.statusType}"></div>
-            <div>
-              <span class="t-status ${t.statusType}">${statusLabel}</span>
-              <h3 class="tekken-font" style="font-size:20px; font-weight:700; color:#fff">${t.name}</h3>
-              <div class="t-meta">
-                <span>📅 ${t.date}</span>
-                <span>⏰ ${t.time}</span>
-                <span>📍 ${t.location}</span>
-              </div>
-            </div>
-            <div>
-              <span class="btn-card">Details & Start.gg ↗</span>
-            </div>
-          </div>
-        `;
-      }
-      container.innerHTML = html;
-    }
-
-    function handleTableClick(event) {
-      const tr = event.target.closest('tr.top50-row');
-      if (!tr) return;
-      const idx = parseInt(tr.getAttribute('data-idx'), 10);
-      const p = currentDisplayedList[idx];
-      if (p && p.rank <= UNLOCKED_LIMIT) openPlayerModal(p);
-    }
-
-    function handleTournamentClick(event) {
-      const item = event.target.closest('.roadmap-item');
-      if (!item) return;
-      const idx = parseInt(item.getAttribute('data-tidx'), 10);
-      const t = currentDisplayedTournaments[idx];
-      if (t) openTournamentModal(t);
-    }
-
-    function openPlayerModal(p) {
-      document.getElementById('modal-rank').innerText = `#${p.rank}`;
-      document.getElementById('modal-player').innerText = p.player;
-      document.getElementById('modal-country').innerText = p.country ? `📍 ${p.country}` : '';
-
-      document.getElementById('modal-main-detail').innerText = p.main || 'Not specified';
-      document.getElementById('modal-country-detail').innerText = p.country || 'Not specified';
-
-      document.getElementById('modal-elo').innerText = p.elo;
-      document.getElementById('modal-matches').innerText = `${p.wins} / ${p.matches}`;
-
-      const numericWinRate = parseFloat(String(p.winRate).replace('%', '').replace(',', '.')) || 0;
-      document.getElementById('modal-winrate').innerText = `${numericWinRate}%`;
-      document.getElementById('modal-winrate-text').innerText = `${numericWinRate}%`;
-      document.getElementById('modal-winrate-bar').style.width = `${Math.min(numericWinRate, 100)}%`;
-
-      document.getElementById('player-modal').classList.add('open');
-    }
-
-    function openTournamentModal(t) {
-      const statusEl = document.getElementById('t-modal-status');
-      statusEl.className = `t-status ${t.statusType}`;
-      statusEl.innerText = t.statusType === 'completed' ? 'Completed' : (t.statusType === 'live' ? 'Live Now' : 'Upcoming');
-
-      document.getElementById('t-modal-name').innerText = t.name;
-      document.getElementById('t-modal-date').innerText = t.date;
-      document.getElementById('t-modal-time').innerText = t.time;
-      document.getElementById('t-modal-location').innerText = t.location;
-
-      const descBox = document.getElementById('t-modal-desc-box');
-      if (t.desc) {
-        descBox.style.display = 'flex';
-        document.getElementById('t-modal-desc').innerText = t.desc;
-      } else {
-        descBox.style.display = 'none';
-      }
-
-      const linkBtn = document.getElementById('t-modal-link');
-      if (t.link) {
-        linkBtn.style.display = 'block';
-        linkBtn.href = t.link.startsWith('http') ? t.link : 'https://' + t.link;
-      } else {
-        linkBtn.style.display = 'none';
-      }
-
-      document.getElementById('tournament-modal').classList.add('open');
-    }
-
-    function hidePlayerModal() {
-      document.getElementById('player-modal').classList.remove('open');
-    }
-    function closePlayerModal(event) {
-      if (event.target.id === 'player-modal') hidePlayerModal();
-    }
-
-    function hideTournamentModal() {
-      document.getElementById('tournament-modal').classList.remove('open');
-    }
-    function closeTournamentModal(event) {
-      if (event.target.id === 'tournament-modal') hideTournamentModal();
-    }
-
-
-    fetchTabData('T8');
-    fetchTabData('T7');
-    fetchTabData('TOURNAMENTS');
-  </script>
 </body>
 </html>
