@@ -439,20 +439,6 @@
     const DATA_STORE = { T8: null, T7: null };
     let currentDisplayedList = [];
 
-    const DEMO_DATA = {
-      T8: [
-        { Ranking: "1", Player: "BalkanMishima", Elo: "2145", "Total Matches": "142", "Total Wins": "115", "Win Rate": "81%", Main: "Kazuya / Reina", Country: "HR", Titles: "Balkan T8 Major #1, Kazuya God" },
-        { Ranking: "2", Player: "YugoKing", Elo: "2080", "Total Matches": "120", "Total Wins": "92", "Win Rate": "76.6%", Main: "King", Country: "RS", Titles: "Command Grab Master, Top 8 Regular" },
-        { Ranking: "3", Player: "SarajevoSteve", Elo: "2015", "Total Matches": "98", "Total Wins": "71", "Win Rate": "72.4%", Main: "Steve Fox", Country: "BA", Titles: "Counter Hit Specialist" },
-        { Ranking: "20", Player: "GatekeeperZ", Elo: "1650", "Total Matches": "64", "Total Wins": "35", "Win Rate": "54.7%", Main: "Bryan Fury", Country: "SI", Titles: "Top 20 Gatekeeper" },
-        { Ranking: "21", Player: "Challenger99", Elo: "1635", "Total Matches": "50", "Total Wins": "26", "Win Rate": "52%", Main: "Jin", Country: "HR" }
-      ],
-      T7: [
-        { Ranking: "1", Player: "OldSchoolKnee", Elo: "2310", "Total Matches": "410", "Total Wins": "340", "Win Rate": "82.9%", Main: "Feng / Geese", Country: "RS", Titles: "T7 Balkan GOAT, 5x Major Winner" },
-        { Ranking: "2", Player: "BalkanMishima", Elo: "2240", "Total Matches": "380", "Total Wins": "295", "Win Rate": "77.6%", Main: "Heihachi", Country: "HR", Titles: "T7 Final Boss" }
-      ]
-    };
-
     function isValidCsvUrl(url) {
       return typeof url === 'string' && url.length > 65 && url.includes('output=csv');
     }
