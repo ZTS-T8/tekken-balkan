@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="hr">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -203,7 +203,8 @@
       border: 1px solid var(--accent);
       display: inline-block;
     }
-    
+
+    /* PAGINATION */
     .pagination {
       display: flex;
       flex-wrap: wrap;
@@ -234,6 +235,7 @@
       border-radius: 8px;
     }
 
+    /* ROADMAP (TOURNAMENTS) */
     .roadmap-wrapper {
       position: relative;
       padding: 10px 0 20px 28px;
@@ -308,6 +310,7 @@
       margin-top: 6px;
     }
 
+    /* MODAL */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -390,16 +393,16 @@
 
   <header>
     <div class="container">
-      <span id="era-badge" class="era-badge">Trenutna Sezona</span>
+      <span id="era-badge" class="era-badge">Current Season</span>
       <h1 class="tekken-font">Tekken Balkan <span id="title-accent">ELO</span></h1>
       <p id="header-subtitle" class="subtitle">
-        Službena rang ljestvica balkanske Tekken zajednice. Klikni na igrača u <strong style="color:#fff">Top 50</strong> za detaljnu statistiku.
+        Official Tekken Balkan community leaderboard. Click on any <strong style="color:#fff">Top 50</strong> player for detailed stats.
       </p>
 
       <div class="tabs">
         <button id="btn-t8" onclick="switchTab('T8')" class="tab-btn tekken-font active">🔥 Tekken 8</button>
         <button id="btn-t7" onclick="switchTab('T7')" class="tab-btn tekken-font">🏆 Tekken 7 Legacy</button>
-        <button id="btn-tournaments" onclick="switchTab('TOURNAMENTS')" class="tab-btn tekken-font">📅 Turniri</button>
+        <button id="btn-tournaments" onclick="switchTab('TOURNAMENTS')" class="tab-btn tekken-font">📅 Tournaments</button>
       </div>
     </div>
   </header>
@@ -407,11 +410,12 @@
   <main class="container">
     <div class="toolbar">
       <div class="search-box">
-        <input type="text" id="search-input" oninput="onSearchInput()" placeholder="Pretraži..." class="search-input">
-        <button onclick="forceRefresh()" class="refresh-btn" title="Povuci najnovije promjene iz tablice">↻ Osvježi</button>
+        <input type="text" id="search-input" oninput="onSearchInput()" placeholder="Search player..." class="search-input">
+        <button onclick="forceRefresh()" class="refresh-btn" title="Fetch latest updates from Google Sheets">↻ Refresh</button>
       </div>
     </div>
 
+    <!-- SECTION 1: LEADERBOARD TABLE -->
     <div class="table-card" id="leaderboard-section">
       <div class="table-scroll">
         <table>
@@ -422,7 +426,7 @@
               <th class="hide-sm" style="text-align:center">Matches</th>
               <th class="hide-sm" style="text-align:center">Win Rate</th>
               <th style="text-align:right">ELO Rating</th>
-              <th style="width:110px; text-align:center">Profil</th>
+              <th style="width:110px; text-align:center">Profile</th>
             </tr>
           </thead>
           <tbody id="leaderboard-body" onclick="handleTableClick(event)"></tbody>
@@ -430,20 +434,22 @@
       </div>
 
       <div class="pagination">
-        <div id="pagination-info" style="font-size:12px; color:var(--muted)">Učitavanje...</div>
+        <div id="pagination-info" style="font-size:12px; color:var(--muted)">Loading...</div>
         <div style="display:flex; align-items:center; gap:8px">
-          <button id="btn-prev-page" onclick="changePage(currentPage - 1)" class="page-btn">← Prethodna</button>
+          <button id="btn-prev-page" onclick="changePage(currentPage - 1)" class="page-btn">← Prev</button>
           <span id="page-indicator" class="page-indicator tekken-font">1 / 1</span>
-          <button id="btn-next-page" onclick="changePage(currentPage + 1)" class="page-btn">Sljedeća →</button>
+          <button id="btn-next-page" onclick="changePage(currentPage + 1)" class="page-btn">Next →</button>
         </div>
       </div>
     </div>
 
+    <!-- SECTION 2: TOURNAMENT ROADMAP -->
     <div id="tournaments-section" class="hidden">
       <div id="roadmap-list" class="roadmap-wrapper" onclick="handleTournamentClick(event)"></div>
     </div>
   </main>
 
+  <!-- MODAL FOR TOP 50 PLAYERS -->
   <div id="player-modal" onclick="closePlayerModal(event)" class="modal-overlay">
     <div class="modal-box" onclick="event.stopPropagation()">
       <div class="modal-header">
@@ -460,11 +466,11 @@
       <div class="modal-body">
         <div class="stats-grid">
           <div class="stat-box">
-            <div class="stat-label">ELO Bodovi</div>
+            <div class="stat-label">ELO Rating</div>
             <div id="modal-elo" class="stat-val tekken-font">0</div>
           </div>
           <div class="stat-box">
-            <div class="stat-label">W / Mečevi</div>
+            <div class="stat-label">Wins / Matches</div>
             <div id="modal-matches" class="stat-val tekken-font">0 / 0</div>
           </div>
           <div class="stat-box">
@@ -475,7 +481,7 @@
 
         <div>
           <div style="display:flex; justify-content:space-between; font-size:12px">
-            <span style="color:var(--muted); font-weight:600; text-transform:uppercase">Uspješnost u mečevima</span>
+            <span style="color:var(--muted); font-weight:600; text-transform:uppercase">Match Win Rate</span>
             <span id="modal-winrate-text" style="color:var(--green); font-weight:700">0%</span>
           </div>
           <div class="bar-bg">
@@ -484,51 +490,52 @@
         </div>
 
         <div class="info-row">
-          <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">Main Lik:</span>
-          <span id="modal-main-detail" class="tekken-font" style="color:var(--accent-light); font-weight:700; font-size:16px">Nije navedeno</span>
+          <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">Main Character:</span>
+          <span id="modal-main-detail" class="tekken-font" style="color:var(--accent-light); font-weight:700; font-size:16px">Not specified</span>
         </div>
 
         <div class="info-row">
           <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">Country:</span>
-          <span id="modal-country-detail" style="font-weight:700">Nije navedeno</span>
+          <span id="modal-country-detail" style="font-weight:700">Not specified</span>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- MODAL FOR TOURNAMENT DETAILS -->
   <div id="tournament-modal" onclick="closeTournamentModal(event)" class="modal-overlay">
     <div class="modal-box" onclick="event.stopPropagation()">
       <div class="modal-header">
         <div>
-          <span id="t-modal-status" class="t-status upcoming">Najavljeno</span>
-          <h2 id="t-modal-name" class="tekken-font" style="font-size:24px; font-weight:700; text-transform:uppercase; margin-top:4px">Naziv Turnira</h2>
+          <span id="t-modal-status" class="t-status upcoming">Upcoming</span>
+          <h2 id="t-modal-name" class="tekken-font" style="font-size:24px; font-weight:700; text-transform:uppercase; margin-top:4px">Tournament Name</h2>
         </div>
         <button onclick="hideTournamentModal()" class="close-btn">&times;</button>
       </div>
 
       <div class="modal-body">
         <div class="info-row">
-          <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">📅 Datum:</span>
+          <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">📅 Date:</span>
           <span id="t-modal-date" style="font-weight:700">TBA</span>
         </div>
 
         <div class="info-row">
-          <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">⏰ Vrijeme:</span>
+          <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">⏰ Time:</span>
           <span id="t-modal-time" style="font-weight:700">TBA</span>
         </div>
 
         <div class="info-row">
-          <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">📍 Lokacija:</span>
+          <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">📍 Location:</span>
           <span id="t-modal-location" style="font-weight:700; text-align:right">TBA</span>
         </div>
 
         <div id="t-modal-desc-box" class="info-row" style="flex-direction:column; align-items:flex-start">
-          <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">ℹ️ Dodatne informacije:</span>
+          <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">ℹ️ Details:</span>
           <p id="t-modal-desc" style="color:#d1d5db; line-height:1.5; font-size:13px"></p>
         </div>
 
         <a id="t-modal-link" href="#" target="_blank" rel="noopener noreferrer" class="startgg-btn tekken-font">
-          🔗 Otvori na Start.gg ↗
+          🔗 View on Start.gg ↗
         </a>
       </div>
     </div>
@@ -539,7 +546,7 @@
     const SHEET_URLS = {
       T8: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=1897594659&single=true&output=csv",
       T7: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=1230236970&single=true&output=csv",
-      TOURNAMENTS: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=975571095&single=true&output=csv" // Ovdje zalijepi CSV link za svoj list "Turniri"
+      TOURNAMENTS: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=975571095&single=true&output=tsv" 
     };
 
     const PAGE_SIZE = 50;
@@ -598,9 +605,9 @@
 
         let statusType = 'upcoming';
         const sLower = statusRaw.toLowerCase();
-        if (sLower.includes('comp') || sLower.includes('zavr') || sLower.includes('past') || sLower.includes('done')) {
+        if (sLower.includes('comp') || sLower.includes('zavr') || sLower.includes('past') || sLower.includes('done') || sLower.includes('finish')) {
           statusType = 'completed';
-        } else if (sLower.includes('live') || sLower.includes('danas') || sLower.includes('u tijeku')) {
+        } else if (sLower.includes('live') || sLower.includes('danas') || sLower.includes('u tijeku') || sLower.includes('ongoing')) {
           statusType = 'live';
         }
 
@@ -673,17 +680,17 @@
       const searchInput = document.getElementById('search-input');
 
       if (tabKey === 'T8') {
-        badge.innerText = 'Trenutna Sezona';
-        subtitle.innerHTML = 'Službena rang ljestvica balkanske Tekken zajednice. Klikni na igrača u <strong style="color:#fff">Top 50</strong> za detaljnu statistiku.';
-        searchInput.placeholder = 'Pretraži igrača...';
+        badge.innerText = 'Current Season';
+        subtitle.innerHTML = 'Official Tekken Balkan community leaderboard. Click on any <strong style="color:#fff">Top 50</strong> player for detailed stats.';
+        searchInput.placeholder = 'Search player...';
       } else if (tabKey === 'T7') {
-        badge.innerText = 'Hall of Fame Arhiva';
-        subtitle.innerHTML = 'Konačna arhivska ljestvica Tekken 7 ere. Klikni na igrača u <strong style="color:#fff">Top 50</strong> za detaljnu statistiku.';
-        searchInput.placeholder = 'Pretraži igrača...';
+        badge.innerText = 'Hall of Fame Archive';
+        subtitle.innerHTML = 'Final all-time standings from the Tekken 7 era. Click on any <strong style="color:#fff">Top 50</strong> player for detailed stats.';
+        searchInput.placeholder = 'Search player...';
       } else {
-        badge.innerText = 'Kalendar & Roadmap';
-        subtitle.innerHTML = 'Pregled nadolazećih i završenih turnira kroz godinu. Klikni na bilo koji turnir za lokaciju, satnicu i <strong style="color:#fff">Start.gg prijavu</strong>.';
-        searchInput.placeholder = 'Pretraži turnir ili grad...';
+        badge.innerText = 'Calendar & Roadmap';
+        subtitle.innerHTML = 'Overview of upcoming and completed community tournaments. Click on any event for location, schedule, and <strong style="color:#fff">Start.gg registration</strong>.';
+        searchInput.placeholder = 'Search tournament or city...';
       }
 
       document.getElementById('leaderboard-section').classList.toggle('hidden', tabKey === 'TOURNAMENTS');
@@ -707,9 +714,9 @@
     function forceRefresh() {
       DATA_STORE[currentTab] = null;
       if (currentTab === 'TOURNAMENTS') {
-        document.getElementById('roadmap-list').innerHTML = '<div style="color:var(--muted); padding:20px">Osvježavanje turnira...</div>';
+        document.getElementById('roadmap-list').innerHTML = '<div style="color:var(--muted); padding:20px">Refreshing tournaments...</div>';
       } else {
-        document.getElementById('leaderboard-body').innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--muted)">Osvježavanje...</td></tr>';
+        document.getElementById('leaderboard-body').innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--muted)">Refreshing...</td></tr>';
       }
       fetchTabData(currentTab, true);
     }
@@ -767,7 +774,7 @@
             <td class="tekken-font" style="text-align:right; font-size:18px; font-weight:700; color:#fff">${p.elo}</td>
             <td style="text-align:center">
               ${isUnlocked
-                ? `<span class="btn-card">Kartica ↗</span>`
+                ? `<span class="btn-card">Card ↗</span>`
                 : `<span style="font-size:12px; color:var(--muted)">🔒 51+</span>`
               }
             </td>
@@ -775,7 +782,7 @@
         `;
       }
 
-      document.getElementById('leaderboard-body').innerHTML = html || '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--muted)">Nema pronađenih igrača</td></tr>';
+      document.getElementById('leaderboard-body').innerHTML = html || '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--muted)">No players found</td></tr>';
 
       const infoEl = document.getElementById('pagination-info');
       const indicatorEl = document.getElementById('page-indicator');
@@ -783,11 +790,11 @@
       document.getElementById('btn-next-page').disabled = (currentPage >= totalPages);
 
       if (totalItems === 0) {
-        infoEl.innerText = 'Nema pronađenih igrača';
+        infoEl.innerText = 'No players found';
         indicatorEl.innerText = '0 / 0';
       } else {
-        infoEl.innerText = `Prikazano ${startIndex + 1}–${endIndex} od ${totalItems} igrača`;
-        indicatorEl.innerText = `Stranica ${currentPage} / ${totalPages}`;
+        infoEl.innerText = `Showing ${startIndex + 1}–${endIndex} of ${totalItems} players`;
+        indicatorEl.innerText = `Page ${currentPage} / ${totalPages}`;
       }
     }
 
@@ -801,16 +808,16 @@
 
       const container = document.getElementById('roadmap-list');
       if (currentDisplayedTournaments.length === 0) {
-        container.innerHTML = '<div style="color:var(--muted); padding:20px">Nema pronađenih turnira.</div>';
+        container.innerHTML = '<div style="color:var(--muted); padding:20px">No tournaments found.</div>';
         return;
       }
 
       let html = '';
       for (let i = 0; i < currentDisplayedTournaments.length; i++) {
         const t = currentDisplayedTournaments[i];
-        let statusLabel = 'Najavljeno';
-        if (t.statusType === 'completed') statusLabel = 'Završeno';
-        else if (t.statusType === 'live') statusLabel = 'U tijeku';
+        let statusLabel = 'Upcoming';
+        if (t.statusType === 'completed') statusLabel = 'Completed';
+        else if (t.statusType === 'live') statusLabel = 'Live Now';
 
         html += `
           <div class="roadmap-item" data-tidx="${i}">
@@ -825,7 +832,7 @@
               </div>
             </div>
             <div>
-              <span class="btn-card">Detalji & Start.gg ↗</span>
+              <span class="btn-card">Details & Start.gg ↗</span>
             </div>
           </div>
         `;
@@ -854,8 +861,8 @@
       document.getElementById('modal-player').innerText = p.player;
       document.getElementById('modal-country').innerText = p.country ? `📍 ${p.country}` : '';
 
-      document.getElementById('modal-main-detail').innerText = p.main || 'Nije navedeno';
-      document.getElementById('modal-country-detail').innerText = p.country || 'Nije navedeno';
+      document.getElementById('modal-main-detail').innerText = p.main || 'Not specified';
+      document.getElementById('modal-country-detail').innerText = p.country || 'Not specified';
 
       document.getElementById('modal-elo').innerText = p.elo;
       document.getElementById('modal-matches').innerText = `${p.wins} / ${p.matches}`;
@@ -871,7 +878,7 @@
     function openTournamentModal(t) {
       const statusEl = document.getElementById('t-modal-status');
       statusEl.className = `t-status ${t.statusType}`;
-      statusEl.innerText = t.statusType === 'completed' ? 'Završeno' : (t.statusType === 'live' ? 'U tijeku' : 'Najavljeno');
+      statusEl.innerText = t.statusType === 'completed' ? 'Completed' : (t.statusType === 'live' ? 'Live Now' : 'Upcoming');
 
       document.getElementById('t-modal-name').innerText = t.name;
       document.getElementById('t-modal-date').innerText = t.date;
