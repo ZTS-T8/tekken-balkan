@@ -29,7 +29,7 @@
         Tekken Balkan <span id="title-accent" class="text-rose-500">ELO</span>
       </h1>
       <p class="text-gray-400 mt-2 text-sm md:text-base max-w-xl mx-auto">
-        Službena rang ljestvica balkanske Tekken zajednice. Klikni na igrača u <span class="text-white font-semibold">Top 20</span> za detaljnu turnirsku statistiku.
+        Službena rang ljestvica balkanske Tekken zajednice. Klikni na igrača u <span class="text-white font-semibold">Top 20</span> za detaljnu statistiku.
       </p>
 
       <!-- ERA SWITCHER (TEKKEN 8 vs TEKKEN 7) -->
@@ -47,13 +47,13 @@
   <!-- MAIN CONTENT -->
   <main class="max-w-5xl mx-auto px-4 mt-8">
     
-    <!-- TRAŽILICA I INFO -->
+    <!-- TRAŽILICA I LEGENDA -->
     <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
       <div class="relative w-full sm:w-80">
         <input 
           type="text" 
           id="search-input" 
-          oninput="renderTable()" 
+          oninput="onSearchInput()" 
           placeholder="Pretraži igrača..." 
           class="w-full bg-gray-900/90 border border-gray-800 focus:border-rose-500 rounded-lg px-4 py-2.5 text-sm text-white outline-none transition"
         >
@@ -64,7 +64,7 @@
       </div>
     </div>
 
-    <!-- TABLICA -->
+    <!-- TABLICA + PAGINACIJA -->
     <div id="table-container" class="bg-gray-900/60 border border-gray-800/80 rounded-2xl overflow-hidden t8-glow transition-all duration-500">
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
@@ -83,6 +83,32 @@
           </tbody>
         </table>
       </div>
+
+      <!-- KONTROLE PAGINACIJE (50 PO STRANICI) -->
+      <div id="pagination-bar" class="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 bg-gray-950/80 border-t border-gray-800 text-sm">
+        <div id="pagination-info" class="text-xs text-gray-400 font-medium">
+          Učitavanje...
+        </div>
+        <div class="flex items-center gap-2">
+          <button 
+            id="btn-prev-page" 
+            onclick="changePage(currentPage - 1)" 
+            class="px-4 py-1.5 rounded-lg bg-gray-900 border border-gray-800 text-xs font-semibold text-gray-300 hover:bg-gray-800 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
+          >
+            ← Prethodna
+          </button>
+          <span id="page-indicator" class="tekken-font text-xs font-bold text-gray-200 px-3 py-1.5 bg-gray-900 rounded-lg border border-gray-800">
+            Stranica 1 / 1
+          </span>
+          <button 
+            id="btn-next-page" 
+            onclick="changePage(currentPage + 1)" 
+            class="px-4 py-1.5 rounded-lg bg-gray-900 border border-gray-800 text-xs font-semibold text-gray-300 hover:bg-gray-800 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
+          >
+            Sljedeća →
+          </button>
+        </div>
+      </div>
     </div>
   </main>
 
@@ -98,20 +124,19 @@
             <span id="modal-country" class="text-xs text-gray-300 font-semibold uppercase tracking-wider"></span>
           </div>
           <h2 id="modal-player" class="tekken-font text-3xl font-bold text-white mt-1 uppercase tracking-wide">Player Name</h2>
-          <p id="modal-main" class="text-xs text-rose-400 font-semibold uppercase tracking-wider mt-0.5"></p>
         </div>
         <button onclick="hideModal()" class="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
       </div>
 
       <!-- Statistika u modalu -->
-      <div class="p-6 space-y-6">
+      <div class="p-6 space-y-5">
         <div class="grid grid-cols-3 gap-3 text-center">
           <div class="bg-gray-950/80 border border-gray-800 p-3 rounded-xl">
             <div class="text-xs text-gray-400 uppercase">ELO Bodovi</div>
             <div id="modal-elo" class="tekken-font text-2xl font-bold text-white mt-1">2100</div>
           </div>
           <div class="bg-gray-950/80 border border-gray-800 p-3 rounded-xl">
-            <div class="text-xs text-gray-400 uppercase">Pobjede / Mečevi</div>
+            <div class="text-xs text-gray-400 uppercase">W / Mečevi</div>
             <div id="modal-matches" class="tekken-font text-xl font-bold text-gray-200 mt-1">85 / 110</div>
           </div>
           <div class="bg-gray-950/80 border border-gray-800 p-3 rounded-xl">
@@ -126,22 +151,28 @@
             <span class="text-gray-400 uppercase font-semibold">Uspješnost u mečevima</span>
             <span id="modal-winrate-text" class="text-emerald-400 font-bold">77%</span>
           </div>
-          <div class="w-full h-2.5 bg-gray-800 rounded-full overflow-hidden">
+          <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
             <div id="modal-winrate-bar" class="h-full bg-gradient-to-r from-rose-500 to-emerald-400" style="width: 75%"></div>
           </div>
         </div>
 
-        <!-- Dodatni info (ako postoji u tablici) -->
-        <div id="modal-extra" class="space-y-3 pt-2 border-t border-gray-800/80 text-sm">
-          <div class="flex justify-between">
-            <span class="text-gray-400">Kontroler:</span>
-            <span id="modal-controller" class="text-white font-medium">Nije navedeno</span>
+        <!-- DODATNI STUPCI: MAIN, COUNTRY, TITLES -->
+        <div class="space-y-3 pt-2 border-t border-gray-800/80 text-sm">
+          <div class="flex items-center justify-between bg-gray-950/60 border border-gray-800/80 px-4 py-3 rounded-xl">
+            <span class="text-gray-400 text-xs uppercase font-semibold">Main Lik:</span>
+            <span id="modal-main-detail" class="tekken-font text-rose-400 font-bold text-base tracking-wide">Nije navedeno</span>
           </div>
-          <div>
-            <span class="text-gray-400 block mb-1.5">Titule & postignuća:</span>
-            <div id="modal-titles" class="flex flex-wrap gap-1.5"></div>
+
+          <div class="flex items-center justify-between bg-gray-950/60 border border-gray-800/80 px-4 py-3 rounded-xl">
+            <span class="text-gray-400 text-xs uppercase font-semibold">Država (Country):</span>
+            <span id="modal-country-detail" class="text-white font-semibold text-sm">Nije navedeno</span>
           </div>
-          <div id="modal-bio-box" class="bg-gray-950/60 border border-gray-800/80 p-3 rounded-lg text-gray-300 italic text-xs">
+
+          <div class="bg-gray-950/60 border border-gray-800/80 p-4 rounded-xl space-y-2">
+            <span class="text-gray-400 text-xs uppercase font-semibold block tracking-wider">Titule & Postignuća (Titles):</span>
+            <div id="modal-titles" class="flex flex-wrap gap-1.5">
+              <!-- Titule se renderiraju dinamički -->
+            </div>
           </div>
         </div>
       </div>
@@ -151,37 +182,40 @@
 
   <script>
     // =========================================================================
-    // OVDJE ZALIJEPI SVOJE GOOGLE SHEETS CSV LINKOVE (iz Koraka 1)
+    // GOOGLE SHEETS CSV LINKOVI
     // =========================================================================
     const SHEET_URLS = {
-      T8: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT", // Npr. "https://docs.google.com/spreadsheets/d/e/2PACX-.../pub?output=csv"
-      T7: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTpz_dZk01F9P9kZODrzf_vcXJWcBToypIgh5kV-RtRh0JLnt5kJzTsTigppK3Pjb0MNhnotlaDDj9h/pub?gid=1618244914&single=true&output=csv"  // Npr. "https://docs.google.com/spreadsheets/d/e/2PACX-.../pub?output=csv"
+      T8: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT", // Ako je link bio skraćen, provjeri da je zalijepljen puni link
+      T7: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTpz_dZk01F9P9kZODrzf_vcXJWcBToypIgh5kV-RtRh0JLnt5kJzTsTigppK3Pjb0MNhnotlaDDj9h/pub?gid=1618244914&single=true&output=csv"
     };
 
-    // Testni podaci koji se prikazuju dok ne zalijepiš svoj Google Sheets link
-    const DEMO_DATA = {
-      T8: [
-        { Ranking: "1", Player: "BalkanMishima", Elo: "2145", "Total Matches": "142", "Total Wins": "115", "Win Rate": "81%", Main: "Kazuya / Reina", Drzava: "HR", Kontroler: "Leverless", Titule: "Balkan T8 Major #1, Kazuya God", Opis: "Dorya do zore. Neporažen u zadnja 3 lokalna turnira." },
-        { Ranking: "2", Player: "YugoKing", Elo: "2080", "Total Matches": "120", "Total Wins": "92", "Win Rate": "76.6%", Main: "King", Drzava: "RS", Kontroler: "Pad (PS5)", Titule: "Command Grab Master, Top 8 Regular", Opis: "Ako ne znaš breakati giant swing u 2026, sam si kriv." },
-        { Ranking: "3", Player: "SarajevoSteve", Elo: "2015", "Total Matches": "98", "Total Wins": "71", "Win Rate": "72.4%", Main: "Steve Fox", Drzava: "BA", Kontroler: "Arcade Stick", Titule: "Counter Hit Specialist", Opis: "Čekam B1 i kažnjavam sve." },
-        { Ranking: "20", Player: "GatekeeperZ", Elo: "1650", "Total Matches": "64", "Total Wins": "35", "Win Rate": "54.7%", Main: "Bryan Fury", Drzava: "SI", Kontroler: "Arcade Stick", Titule: "Top 20 Gatekeeper", Opis: "Čuvam ulaz u Top 20." },
-        { Ranking: "21", Player: "Challenger99", Elo: "1635", "Total Matches": "50", "Total Wins": "26", "Win Rate": "52%", Main: "Jin", Drzava: "HR" },
-        { Ranking: "22", Player: "NoviIgrac", Elo: "1590", "Total Matches": "30", "Total Wins": "14", "Win Rate": "46.6%", Main: "Law", Drzava: "MK" }
-      ],
-      T7: [
-        { Ranking: "1", Player: "OldSchoolKnee", Elo: "2310", "Total Matches": "410", "Total Wins": "340", "Win Rate": "82.9%", Main: "Feng / Geese", Drzava: "RS", Kontroler: "Arcade Stick", Titule: "T7 Balkan GOAT, 5x Major Winner", Opis: "Legenda Tekken 7 ere na Balkanu." },
-        { Ranking: "2", Player: "BalkanMishima", Elo: "2240", "Total Matches": "380", "Total Wins": "295", "Win Rate": "77.6%", Main: "Heihachi", Drzava: "HR", Kontroler: "Arcade Stick", Titule: "T7 Final Boss", Opis: "Višegodišnji dominator T7 scene." },
-        { Ranking: "21", Player: "CasualFighter", Elo: "1480", "Total Matches": "45", "Total Wins": "20", "Win Rate": "44.4%" }
-      ]
-    };
-
+    // Paginacija postavke
+    const PAGE_SIZE = 50;
+    let currentPage = 1;
     let currentEra = 'T8';
     let playersData = [];
 
+    // Testni podaci ako link nije aktivan
+    const DEMO_DATA = {
+      T8: [
+        { Ranking: "1", Player: "BalkanMishima", Elo: "2145", "Total Matches": "142", "Total Wins": "115", "Win Rate": "81%", Main: "Kazuya / Reina", Country: "HR", Titles: "Balkan T8 Major #1, Kazuya God" },
+        { Ranking: "2", Player: "YugoKing", Elo: "2080", "Total Matches": "120", "Total Wins": "92", "Win Rate": "76.6%", Main: "King", Country: "RS", Titles: "Command Grab Master, Top 8 Regular" },
+        { Ranking: "3", Player: "SarajevoSteve", Elo: "2015", "Total Matches": "98", "Total Wins": "71", "Win Rate": "72.4%", Main: "Steve Fox", Country: "BA", Titles: "Counter Hit Specialist" },
+        { Ranking: "20", Player: "GatekeeperZ", Elo: "1650", "Total Matches": "64", "Total Wins": "35", "Win Rate": "54.7%", Main: "Bryan Fury", Country: "SI", Titles: "Top 20 Gatekeeper" },
+        { Ranking: "21", Player: "Challenger99", Elo: "1635", "Total Matches": "50", "Total Wins": "26", "Win Rate": "52%", Main: "Jin", Country: "HR" },
+        { Ranking: "51", Player: "PageTwoFighter", Elo: "1420", "Total Matches": "32", "Total Wins": "15", "Win Rate": "46.8%", Main: "Paul", Country: "HR" }
+      ],
+      T7: [
+        { Ranking: "1", Player: "OldSchoolKnee", Elo: "2310", "Total Matches": "410", "Total Wins": "340", "Win Rate": "82.9%", Main: "Feng / Geese", Country: "RS", Titles: "T7 Balkan GOAT, 5x Major Winner" },
+        { Ranking: "2", Player: "BalkanMishima", Elo: "2240", "Total Matches": "380", "Total Wins": "295", "Win Rate": "77.6%", Main: "Heihachi", Country: "HR", Titles: "T7 Final Boss" }
+      ]
+    };
+
     function loadEraData(era) {
       const url = SHEET_URLS[era];
-      if (!url) {
-        playersData = DEMO_DATA[era];
+      if (!url || url.length < 35) {
+        playersData = DEMO_DATA[era] || [];
+        currentPage = 1;
         renderTable();
         return;
       }
@@ -192,6 +226,7 @@
         skipEmptyLines: true,
         complete: function(results) {
           playersData = results.data;
+          currentPage = 1;
           renderTable();
         }
       });
@@ -199,6 +234,7 @@
 
     function switchEra(era) {
       currentEra = era;
+      currentPage = 1;
       const btnT8 = document.getElementById('btn-t8');
       const btnT7 = document.getElementById('btn-t7');
       const banner = document.getElementById('header-banner');
@@ -229,26 +265,53 @@
       loadEraData(era);
     }
 
+    function onSearchInput() {
+      currentPage = 1;
+      renderTable();
+    }
+
+    function changePage(newPage) {
+      currentPage = newPage;
+      renderTable();
+      document.getElementById('table-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
     function renderTable() {
       const tbody = document.getElementById('leaderboard-body');
-      const query = document.getElementById('search-input').value.toLowerCase();
+      const query = document.getElementById('search-input').value.toLowerCase().trim();
       tbody.innerHTML = '';
 
-      playersData.forEach((row, index) => {
-        const rank = parseInt(row['Ranking'] || (index + 1), 10);
+      // Filtriranje po imenu, državi ili liku
+      const filtered = playersData.filter(row => {
+        const player = (row['Player'] || '').toLowerCase();
+        const mainChar = (row['Main'] || '').toLowerCase();
+        const country = (row['Country'] || row['Drzava'] || '').toLowerCase();
+        return !query || player.includes(query) || mainChar.includes(query) || country.includes(query);
+      });
+
+      const totalItems = filtered.length;
+      const totalPages = Math.ceil(totalItems / PAGE_SIZE) || 1;
+
+      if (currentPage > totalPages) currentPage = totalPages;
+      if (currentPage < 1) currentPage = 1;
+
+      const startIndex = (currentPage - 1) * PAGE_SIZE;
+      const endIndex = Math.min(startIndex + PAGE_SIZE, totalItems);
+      const pagePlayers = filtered.slice(startIndex, endIndex);
+
+      // Render redova tablice
+      pagePlayers.forEach((row, idx) => {
+        const rank = parseInt(row['Ranking'] || row['Rank'] || (startIndex + idx + 1), 10);
         const player = row['Player'] || 'Nepoznat';
         const elo = row['Elo'] || '0';
         const totalMatches = row['Total Matches'] || '0';
         const totalWins = row['Total Wins'] || '0';
         const winRate = row['Win Rate'] || '0%';
         const mainChar = row['Main'] || '';
-        const country = row['Drzava'] || '';
-
-        if (query && !player.toLowerCase().includes(query)) return;
+        const country = row['Country'] || row['Drzava'] || '';
 
         const isTop20 = rank <= 20;
 
-        // Stil za Top 3
         let rankBadge = `<span class="tekken-font font-bold text-gray-400">#${rank}</span>`;
         if (rank === 1) rankBadge = `<span class="tekken-font px-2.5 py-1 rounded bg-amber-500/20 border border-amber-400 text-amber-300 font-bold">🥇 #1</span>`;
         if (rank === 2) rankBadge = `<span class="tekken-font px-2.5 py-1 rounded bg-slate-400/20 border border-slate-300 text-slate-200 font-bold">🥈 #2</span>`;
@@ -285,13 +348,39 @@
 
         tbody.appendChild(tr);
       });
+
+      // Ažuriranje trake paginacije
+      const infoEl = document.getElementById('pagination-info');
+      const indicatorEl = document.getElementById('page-indicator');
+      const btnPrev = document.getElementById('btn-prev-page');
+      const btnNext = document.getElementById('btn-next-page');
+
+      if (totalItems === 0) {
+        infoEl.innerText = "Nema pronađenih igrača";
+        indicatorEl.innerText = "Stranica 0 / 0";
+        btnPrev.disabled = true;
+        btnNext.disabled = true;
+      } else {
+        infoEl.innerText = `Prikazano ${startIndex + 1}–${endIndex} od ${totalItems} igrača`;
+        indicatorEl.innerText = `Stranica ${currentPage} / ${totalPages}`;
+        btnPrev.disabled = (currentPage === 1);
+        btnNext.disabled = (currentPage === totalPages);
+      }
     }
 
     function openPlayerModal(row, rank) {
+      const player = row['Player'] || 'Nepoznat';
+      const country = row['Country'] || row['Drzava'] || '';
+      const mainChar = row['Main'] || '';
+      const titles = row['Titles'] || row['Titule'] || '';
+
       document.getElementById('modal-rank').innerText = `#${rank}`;
-      document.getElementById('modal-player').innerText = row['Player'] || '';
-      document.getElementById('modal-country').innerText = row['Drzava'] ? `📍 ${row['Drzava']}` : '';
-      document.getElementById('modal-main').innerText = row['Main'] ? `Main: ${row['Main']}` : 'Tekken Balkan Top 20 Fighter';
+      document.getElementById('modal-player').innerText = player;
+      document.getElementById('modal-country').innerText = country ? `📍 ${country}` : '';
+      
+      document.getElementById('modal-main-detail').innerText = mainChar || 'Nije navedeno';
+      document.getElementById('modal-country-detail').innerText = country || 'Nije navedeno';
+
       document.getElementById('modal-elo').innerText = row['Elo'] || '0';
       document.getElementById('modal-matches').innerText = `${row['Total Wins'] || 0} / ${row['Total Matches'] || 0}`;
       
@@ -301,26 +390,21 @@
       document.getElementById('modal-winrate-text').innerText = `${numericWinRate}%`;
       document.getElementById('modal-winrate-bar').style.width = `${Math.min(numericWinRate, 100)}%`;
 
-      document.getElementById('modal-controller').innerText = row['Kontroler'] || 'Nije navedeno';
-
       // Titule
       const titlesContainer = document.getElementById('modal-titles');
       titlesContainer.innerHTML = '';
-      const titles = row['Titule'] ? row['Titule'].split(',') : ['Top 20 Balkan Contender'];
-      titles.forEach(t => {
-        const badge = document.createElement('span');
-        badge.className = "px-2.5 py-1 text-xs font-semibold bg-gray-800 border border-gray-700 text-amber-300 rounded-md";
-        badge.innerText = `🏅 ${t.trim()}`;
-        titlesContainer.appendChild(badge);
-      });
-
-      // Opis
-      const bioBox = document.getElementById('modal-bio-box');
-      if (row['Opis']) {
-        bioBox.style.display = 'block';
-        bioBox.innerText = `"${row['Opis']}"`;
+      if (titles && titles.trim()) {
+        const titlesList = titles.split(',');
+        titlesList.forEach(t => {
+          if (t.trim()) {
+            const badge = document.createElement('span');
+            badge.className = "px-2.5 py-1 text-xs font-semibold bg-gray-900 border border-gray-700 text-amber-300 rounded-md";
+            badge.innerText = `🏅 ${t.trim()}`;
+            titlesContainer.appendChild(badge);
+          }
+        });
       } else {
-        bioBox.style.display = 'none';
+        titlesContainer.innerHTML = `<span class="text-xs text-gray-500 italic">Nema upisanih titula</span>`;
       }
 
       const modal = document.getElementById('player-modal');
