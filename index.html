@@ -15,6 +15,11 @@
     .tekken-font { font-family: 'Chakra Petch', sans-serif; }
     .t8-glow { box-shadow: 0 0 25px rgba(225, 29, 72, 0.25); }
     .t7-glow { box-shadow: 0 0 25px rgba(245, 158, 11, 0.25); }
+    @keyframes spin-slow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .anim-spin { animation: spin-slow 0.8s linear infinite; }
   </style>
 </head>
 <body class="min-h-screen pb-16">
@@ -47,17 +52,31 @@
   <!-- MAIN CONTENT -->
   <main class="max-w-5xl mx-auto px-4 mt-8">
     
-    <!-- TRAŽILICA I LEGENDA -->
+    <!-- TRAŽILICA, GUMB ZA OSVJEŽAVANJE I LEGENDA -->
     <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
-      <div class="relative w-full sm:w-80">
-        <input 
-          type="text" 
-          id="search-input" 
-          oninput="onSearchInput()" 
-          placeholder="Pretraži igrača..." 
-          class="w-full bg-gray-900/90 border border-gray-800 focus:border-rose-500 rounded-lg px-4 py-2.5 text-sm text-white outline-none transition"
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <div class="relative w-full sm:w-80">
+          <input 
+            type="text" 
+            id="search-input" 
+            oninput="onSearchInput()" 
+            placeholder="Pretraži igrača..." 
+            class="w-full bg-gray-900/90 border border-gray-800 focus:border-rose-500 rounded-lg px-4 py-2.5 text-sm text-white outline-none transition"
+          >
+        </div>
+        <!-- Gumb za forsirano osvježavanje baze -->
+        <button 
+          id="btn-refresh" 
+          onclick="forceRefreshData()" 
+          title="Osvježi podatke iz Google Sheetsa"
+          class="p-2.5 bg-gray-900 border border-gray-800 hover:border-gray-700 hover:bg-gray-800 rounded-lg text-gray-300 hover:text-white transition flex items-center justify-center"
         >
+          <svg id="refresh-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+        </button>
       </div>
+
       <div class="text-xs text-gray-400 flex items-center gap-2">
         <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Top 1–20: Otključan profil
         <span class="inline-block w-2.5 h-2.5 rounded-full bg-gray-600 ml-3"></span> 21+: Zaključano
@@ -79,7 +98,7 @@
             </tr>
           </thead>
           <tbody id="leaderboard-body" class="divide-y divide-gray-800/60 text-sm">
-            <!-- Redovi se generiraju kroz JavaScript -->
+            <!-- Redovi tablice -->
           </tbody>
         </table>
       </div>
@@ -145,7 +164,7 @@
           </div>
         </div>
 
-        <!-- Win rate vizualni bar -->
+        <!-- Win rate bar -->
         <div>
           <div class="flex justify-between text-xs mb-1">
             <span class="text-gray-400 uppercase font-semibold">Uspješnost u mečevima</span>
@@ -171,7 +190,7 @@
           <div class="bg-gray-950/60 border border-gray-800/80 p-4 rounded-xl space-y-2">
             <span class="text-gray-400 text-xs uppercase font-semibold block tracking-wider">Titule & Postignuća (Titles):</span>
             <div id="modal-titles" class="flex flex-wrap gap-1.5">
-              <!-- Titule se renderiraju dinamički -->
+              <!-- Renderira se dinamički -->
             </div>
           </div>
         </div>
@@ -185,9 +204,13 @@
     // GOOGLE SHEETS CSV LINKOVI
     // =========================================================================
     const SHEET_URLS = {
-      T8: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT", // Ako je link bio skraćen, provjeri da je zalijepljen puni link
+      T8: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT", // Provjeri da stoji cijeli T8 link
       T7: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTpz_dZk01F9P9kZODrzf_vcXJWcBToypIgh5kV-RtRh0JLnt5kJzTsTigppK3Pjb0MNhnotlaDDj9h/pub?gid=1618244914&single=true&output=csv"
     };
+
+    // CACHE POSTAVKE (5 MINUTA)
+    const CACHE_EXPIRATION_MS = 5 * 60 * 1000; 
+    const memoryCache = { T8: null, T7: null };
 
     // Paginacija postavke
     const PAGE_SIZE = 50;
@@ -195,7 +218,7 @@
     let currentEra = 'T8';
     let playersData = [];
 
-    // Testni podaci ako link nije aktivan
+    // Demo podaci kao fallback
     const DEMO_DATA = {
       T8: [
         { Ranking: "1", Player: "BalkanMishima", Elo: "2145", "Total Matches": "142", "Total Wins": "115", "Win Rate": "81%", Main: "Kazuya / Reina", Country: "HR", Titles: "Balkan T8 Major #1, Kazuya God" },
@@ -211,7 +234,30 @@
       ]
     };
 
-    function loadEraData(era) {
+    // Pomocne funkcije za Storage Cache
+    function getStoredCache(era) {
+      if (memoryCache[era]) return memoryCache[era];
+      try {
+        const item = localStorage.getItem('tb_cache_' + era);
+        if (item) {
+          const parsed = JSON.parse(item);
+          memoryCache[era] = parsed;
+          return parsed;
+        }
+      } catch (e) { console.warn("Cache read error", e); }
+      return null;
+    }
+
+    function saveStoredCache(era, data) {
+      const cacheObj = { timestamp: Date.now(), data: data };
+      memoryCache[era] = cacheObj;
+      try {
+        localStorage.setItem('tb_cache_' + era, JSON.stringify(cacheObj));
+      } catch (e) { console.warn("Cache write error", e); }
+    }
+
+    // Učitavanje podataka s pametnim cacheom
+    function loadEraData(era, forceRefresh = false) {
       const url = SHEET_URLS[era];
       if (!url || url.length < 35) {
         playersData = DEMO_DATA[era] || [];
@@ -220,21 +266,55 @@
         return;
       }
 
+      const cached = getStoredCache(era);
+      const isFresh = cached && (Date.now() - cached.timestamp < CACHE_EXPIRATION_MS);
+
+      // AKO IMAMO CACHE I NIJE ZATRAŽEN REFRESH: Prikazujemo ODMAH (0ms latency!)
+      if (cached && cached.data && !forceRefresh) {
+        playersData = cached.data;
+        renderTable();
+        // Ako je cache još uvijek svjež (<5 min), gotovi smo
+        if (isFresh) return;
+      }
+
+      // Pozadinsko ili forsirano skidanje s Googlea
+      fetchCsvFromGoogle(era, url, forceRefresh);
+    }
+
+    function fetchCsvFromGoogle(era, url, isManualRefresh) {
+      const icon = document.getElementById('refresh-icon');
+      if (isManualRefresh) icon.classList.add('anim-spin');
+
       Papa.parse(url, {
         download: true,
         header: true,
         skipEmptyLines: true,
         complete: function(results) {
-          playersData = results.data;
-          currentPage = 1;
-          renderTable();
+          if (isManualRefresh) icon.classList.remove('anim-spin');
+          if (results.data && results.data.length > 0) {
+            saveStoredCache(era, results.data);
+            if (currentEra === era) {
+              playersData = results.data;
+              renderTable();
+            }
+          }
+        },
+        error: function(err) {
+          if (isManualRefresh) icon.classList.remove('anim-spin');
+          console.error("Greška pri učitavanju:", err);
         }
       });
     }
 
+    function forceRefreshData() {
+      loadEraData(currentEra, true);
+    }
+
     function switchEra(era) {
+      if (currentEra === era) return;
       currentEra = era;
       currentPage = 1;
+
       const btnT8 = document.getElementById('btn-t8');
       const btnT7 = document.getElementById('btn-t7');
       const banner = document.getElementById('header-banner');
@@ -262,7 +342,7 @@
         tableContainer.classList.add('t7-glow');
       }
 
-      loadEraData(era);
+      loadEraData(era, false);
     }
 
     function onSearchInput() {
@@ -281,7 +361,6 @@
       const query = document.getElementById('search-input').value.toLowerCase().trim();
       tbody.innerHTML = '';
 
-      // Filtriranje po imenu, državi ili liku
       const filtered = playersData.filter(row => {
         const player = (row['Player'] || '').toLowerCase();
         const mainChar = (row['Main'] || '').toLowerCase();
@@ -299,7 +378,6 @@
       const endIndex = Math.min(startIndex + PAGE_SIZE, totalItems);
       const pagePlayers = filtered.slice(startIndex, endIndex);
 
-      // Render redova tablice
       pagePlayers.forEach((row, idx) => {
         const rank = parseInt(row['Ranking'] || row['Rank'] || (startIndex + idx + 1), 10);
         const player = row['Player'] || 'Nepoznat';
@@ -349,7 +427,7 @@
         tbody.appendChild(tr);
       });
 
-      // Ažuriranje trake paginacije
+      // Kontrole paginacije
       const infoEl = document.getElementById('pagination-info');
       const indicatorEl = document.getElementById('page-indicator');
       const btnPrev = document.getElementById('btn-prev-page');
@@ -390,7 +468,6 @@
       document.getElementById('modal-winrate-text').innerText = `${numericWinRate}%`;
       document.getElementById('modal-winrate-bar').style.width = `${Math.min(numericWinRate, 100)}%`;
 
-      // Titule
       const titlesContainer = document.getElementById('modal-titles');
       titlesContainer.innerHTML = '';
       if (titles && titles.trim()) {
@@ -422,7 +499,7 @@
       if (event.target.id === 'player-modal') hideModal();
     }
 
-    // Inicijalno učitavanje
+    // Inicijalni start
     loadEraData('T8');
   </script>
 </body>
