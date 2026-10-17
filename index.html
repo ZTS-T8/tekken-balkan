@@ -417,9 +417,6 @@
   </div>
 
   <script>
-    // =========================================================================
-    // GOOGLE SHEETS CSV LINKOVI (Obavezno puni link koji završava na output=csv)
-    // =========================================================================
     const SHEET_URLS = {
       T8: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=1897594659&single=true&output=csv", // Zalijepi puni T8 CSV link ovdje
       T7: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=1230236970&single=true&output=csv"
@@ -443,7 +440,6 @@
       return typeof url === 'string' && url.length > 65 && url.includes('output=csv');
     }
 
-    // Očisti prazne redove i pripremi podatke jednom za trenutno pretraživanje
     function normalizeRows(rawRows) {
       const clean = [];
       for (let i = 0; i < rawRows.length; i++) {
@@ -647,7 +643,6 @@
       if (event.target.id === 'player-modal') hideModal();
     }
 
-    // Učitaj obje ere odmah u pozadini pri otvaranju stranice
     fetchEra('T8');
     fetchEra('T7');
   </script>
