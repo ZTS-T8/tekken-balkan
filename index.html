@@ -24,6 +24,11 @@
       --accent-light: #fbbf24;
       --accent-bg: rgba(217, 119, 6, 0.15);
     }
+    body.era-tournaments {
+      --accent: #2563eb;
+      --accent-light: #60a5fa;
+      --accent-bg: rgba(37, 99, 235, 0.15);
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Inter', sans-serif;
@@ -74,6 +79,8 @@
     /* TABS */
     .tabs {
       display: inline-flex;
+      flex-wrap: wrap;
+      justify-content: center;
       padding: 4px;
       margin-top: 24px;
       background: var(--card);
@@ -196,8 +203,7 @@
       border: 1px solid var(--accent);
       display: inline-block;
     }
-
-    /* PAGINATION */
+    
     .pagination {
       display: flex;
       flex-wrap: wrap;
@@ -228,7 +234,80 @@
       border-radius: 8px;
     }
 
-    /* MODAL */
+    .roadmap-wrapper {
+      position: relative;
+      padding: 10px 0 20px 28px;
+      margin-top: 10px;
+    }
+    .roadmap-wrapper::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 18px;
+      bottom: 18px;
+      width: 2px;
+      background: linear-gradient(180deg, var(--accent), var(--border));
+    }
+    .roadmap-item {
+      position: relative;
+      margin-bottom: 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      cursor: pointer;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+    }
+    .roadmap-item:hover {
+      border-color: var(--accent-light);
+      background: #151824;
+    }
+    .roadmap-dot {
+      position: absolute;
+      left: -27px;
+      top: 24px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 3px solid var(--bg);
+      box-shadow: 0 0 0 2px var(--accent);
+    }
+    .roadmap-dot.completed {
+      background: var(--muted);
+      box-shadow: 0 0 0 2px var(--border);
+    }
+    .roadmap-dot.live {
+      background: var(--green);
+      box-shadow: 0 0 10px var(--green);
+    }
+    .t-status {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+    }
+    .t-status.upcoming { background: var(--accent-bg); color: var(--accent-light); border: 1px solid var(--accent); }
+    .t-status.completed { background: #1f2433; color: var(--muted); border: 1px solid #2e364f; }
+    .t-status.live { background: rgba(52, 211, 153, 0.15); color: var(--green); border: 1px solid var(--green); }
+
+    .t-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -281,7 +360,26 @@
       padding: 12px 14px;
       border-radius: 10px;
       font-size: 13px;
+      gap: 12px;
     }
+    .startgg-btn {
+      display: block;
+      width: 100%;
+      text-align: center;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      text-decoration: none;
+      padding: 13px;
+      border-radius: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+    .startgg-btn:hover { opacity: 0.92; }
+
+    .hidden { display: none !important; }
 
     @media (max-width: 640px) {
       .hide-sm { display: none; }
@@ -294,13 +392,14 @@
     <div class="container">
       <span id="era-badge" class="era-badge">Trenutna Sezona</span>
       <h1 class="tekken-font">Tekken Balkan <span id="title-accent">ELO</span></h1>
-      <p class="subtitle">
+      <p id="header-subtitle" class="subtitle">
         Službena rang ljestvica balkanske Tekken zajednice. Klikni na igrača u <strong style="color:#fff">Top 50</strong> za detaljnu statistiku.
       </p>
 
       <div class="tabs">
-        <button id="btn-t8" onclick="switchEra('T8')" class="tab-btn tekken-font active">🔥 Tekken 8</button>
-        <button id="btn-t7" onclick="switchEra('T7')" class="tab-btn tekken-font">🏆 Tekken 7 Legacy</button>
+        <button id="btn-t8" onclick="switchTab('T8')" class="tab-btn tekken-font active">🔥 Tekken 8</button>
+        <button id="btn-t7" onclick="switchTab('T7')" class="tab-btn tekken-font">🏆 Tekken 7 Legacy</button>
+        <button id="btn-tournaments" onclick="switchTab('TOURNAMENTS')" class="tab-btn tekken-font">📅 Turniri</button>
       </div>
     </div>
   </header>
@@ -308,12 +407,12 @@
   <main class="container">
     <div class="toolbar">
       <div class="search-box">
-        <input type="text" id="search-input" oninput="onSearchInput()" placeholder="Pretraži igrača..." class="search-input">
+        <input type="text" id="search-input" oninput="onSearchInput()" placeholder="Pretraži..." class="search-input">
         <button onclick="forceRefresh()" class="refresh-btn" title="Povuci najnovije promjene iz tablice">↻ Osvježi</button>
       </div>
     </div>
 
-    <div class="table-card" id="table-container">
+    <div class="table-card" id="leaderboard-section">
       <div class="table-scroll">
         <table>
           <thead>
@@ -339,10 +438,13 @@
         </div>
       </div>
     </div>
+
+    <div id="tournaments-section" class="hidden">
+      <div id="roadmap-list" class="roadmap-wrapper" onclick="handleTournamentClick(event)"></div>
+    </div>
   </main>
 
-  <!-- MODAL ZA TOP 50 -->
-  <div id="player-modal" onclick="closeModal(event)" class="modal-overlay">
+  <div id="player-modal" onclick="closePlayerModal(event)" class="modal-overlay">
     <div class="modal-box" onclick="event.stopPropagation()">
       <div class="modal-header">
         <div>
@@ -352,7 +454,7 @@
           </div>
           <h2 id="modal-player" class="tekken-font" style="font-size:28px; font-weight:700; text-transform:uppercase; margin-top:4px">Player</h2>
         </div>
-        <button onclick="hideModal()" class="close-btn">&times;</button>
+        <button onclick="hidePlayerModal()" class="close-btn">&times;</button>
       </div>
 
       <div class="modal-body">
@@ -381,7 +483,6 @@
           </div>
         </div>
 
-        <!-- DODATNI STUPCI: MAIN, COUNTRY -->
         <div class="info-row">
           <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">Main Lik:</span>
           <span id="modal-main-detail" class="tekken-font" style="color:var(--accent-light); font-weight:700; font-size:16px">Nije navedeno</span>
@@ -395,30 +496,67 @@
     </div>
   </div>
 
+  <div id="tournament-modal" onclick="closeTournamentModal(event)" class="modal-overlay">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <span id="t-modal-status" class="t-status upcoming">Najavljeno</span>
+          <h2 id="t-modal-name" class="tekken-font" style="font-size:24px; font-weight:700; text-transform:uppercase; margin-top:4px">Naziv Turnira</h2>
+        </div>
+        <button onclick="hideTournamentModal()" class="close-btn">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="info-row">
+          <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">📅 Datum:</span>
+          <span id="t-modal-date" style="font-weight:700">TBA</span>
+        </div>
+
+        <div class="info-row">
+          <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">⏰ Vrijeme:</span>
+          <span id="t-modal-time" style="font-weight:700">TBA</span>
+        </div>
+
+        <div class="info-row">
+          <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">📍 Lokacija:</span>
+          <span id="t-modal-location" style="font-weight:700; text-align:right">TBA</span>
+        </div>
+
+        <div id="t-modal-desc-box" class="info-row" style="flex-direction:column; align-items:flex-start">
+          <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">ℹ️ Dodatne informacije:</span>
+          <p id="t-modal-desc" style="color:#d1d5db; line-height:1.5; font-size:13px"></p>
+        </div>
+
+        <a id="t-modal-link" href="#" target="_blank" rel="noopener noreferrer" class="startgg-btn tekken-font">
+          🔗 Otvori na Start.gg ↗
+        </a>
+      </div>
+    </div>
+  </div>
+
   <script>
+
     const SHEET_URLS = {
       T8: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=1897594659&single=true&output=csv",
-      T7: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=1230236970&single=true&output=csv"
+      T7: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=1230236970&single=true&output=csv",
+      TOURNAMENTS: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=975571095&single=true&output=csv" // Ovdje zalijepi CSV link za svoj list "Turniri"
     };
-
-    try {
-      localStorage.removeItem('tb_cache_T8');
-      localStorage.removeItem('tb_cache_T7');
-    } catch (e) {}
 
     const PAGE_SIZE = 50;
     const UNLOCKED_LIMIT = 50;
     let currentPage = 1;
-    let currentEra = 'T8';
+    let currentTab = 'T8';
 
-    const DATA_STORE = { T8: null, T7: null };
+    const DATA_STORE = { T8: null, T7: null, TOURNAMENTS: null };
     let currentDisplayedList = [];
+    let currentDisplayedTournaments = [];
+
 
     function isValidCsvUrl(url) {
       return typeof url === 'string' && url.length > 65 && url.includes('output=csv');
     }
 
-    function normalizeRows(rawRows) {
+    function normalizePlayerRows(rawRows) {
       const clean = [];
       for (let i = 0; i < rawRows.length; i++) {
         const r = rawRows[i];
@@ -444,16 +582,57 @@
       return clean;
     }
 
-    function fetchEra(era, force = false) {
-      if (DATA_STORE[era] && !force) {
-        if (currentEra === era) renderTable();
+    function normalizeTournamentRows(rawRows) {
+      const clean = [];
+      for (let i = 0; i < rawRows.length; i++) {
+        const r = rawRows[i];
+        const name = (r['Tournament'] || r['Turnir'] || r['Naziv'] || r['Name'] || '').trim();
+        if (!name) continue;
+
+        const date = (r['Date'] || r['Datum'] || 'TBA').trim();
+        const time = (r['Time'] || r['Vrijeme'] || 'TBA').trim();
+        const location = (r['Location'] || r['Lokacija'] || 'TBA').trim();
+        const link = (r['Link'] || r['StartGG'] || r['Start.gg'] || r['URL'] || '').trim();
+        const statusRaw = (r['Status'] || 'Upcoming').trim();
+        const desc = (r['Description'] || r['Opis'] || r['Info'] || '').trim();
+
+        let statusType = 'upcoming';
+        const sLower = statusRaw.toLowerCase();
+        if (sLower.includes('comp') || sLower.includes('zavr') || sLower.includes('past') || sLower.includes('done')) {
+          statusType = 'completed';
+        } else if (sLower.includes('live') || sLower.includes('danas') || sLower.includes('u tijeku')) {
+          statusType = 'live';
+        }
+
+        clean.push({
+          name,
+          date,
+          time,
+          location,
+          link,
+          statusRaw,
+          statusType,
+          desc,
+          searchKey: (name + ' ' + location + ' ' + date).toLowerCase()
+        });
+      }
+      return clean;
+    }
+
+    function fetchTabData(tabKey, force = false) {
+      if (DATA_STORE[tabKey] && !force) {
+        if (currentTab === tabKey) renderCurrentView();
         return;
       }
 
-      const url = SHEET_URLS[era];
+      const url = SHEET_URLS[tabKey];
       if (!isValidCsvUrl(url)) {
-        DATA_STORE[era] = [];
-        if (currentEra === era) renderTable();
+        if (tabKey === 'TOURNAMENTS') {
+          DATA_STORE[tabKey] = normalizeTournamentRows(DEMO_TOURNAMENTS);
+        } else {
+          DATA_STORE[tabKey] = [];
+        }
+        if (currentTab === tabKey) renderCurrentView();
         return;
       }
 
@@ -462,43 +641,82 @@
         header: true,
         skipEmptyLines: 'greedy',
         complete: function(results) {
-          DATA_STORE[era] = normalizeRows(results.data || []);
-          if (currentEra === era) renderTable();
+          if (tabKey === 'TOURNAMENTS') {
+            DATA_STORE[tabKey] = normalizeTournamentRows(results.data || []);
+          } else {
+            DATA_STORE[tabKey] = normalizePlayerRows(results.data || []);
+          }
+          if (currentTab === tabKey) renderCurrentView();
         },
         error: function() {
-          DATA_STORE[era] = [];
-          if (currentEra === era) renderTable();
+          DATA_STORE[tabKey] = tabKey === 'TOURNAMENTS' ? normalizeTournamentRows(DEMO_TOURNAMENTS) : [];
+          if (currentTab === tabKey) renderCurrentView();
         }
       });
     }
 
-    function switchEra(era) {
-      if (currentEra === era) return;
-      currentEra = era;
+    function switchTab(tabKey) {
+      if (currentTab === tabKey) return;
+      currentTab = tabKey;
       currentPage = 1;
 
-      document.body.classList.toggle('era-t7', era === 'T7');
-      document.getElementById('btn-t8').classList.toggle('active', era === 'T8');
-      document.getElementById('btn-t7').classList.toggle('active', era === 'T7');
-      document.getElementById('era-badge').innerText = era === 'T8' ? 'Trenutna Sezona' : 'Hall of Fame Arhiva';
+      document.body.classList.remove('era-t7', 'era-tournaments');
+      if (tabKey === 'T7') document.body.classList.add('era-t7');
+      if (tabKey === 'TOURNAMENTS') document.body.classList.add('era-tournaments');
 
-      if (DATA_STORE[era]) {
-        renderTable();
+      document.getElementById('btn-t8').classList.toggle('active', tabKey === 'T8');
+      document.getElementById('btn-t7').classList.toggle('active', tabKey === 'T7');
+      document.getElementById('btn-tournaments').classList.toggle('active', tabKey === 'TOURNAMENTS');
+
+      const badge = document.getElementById('era-badge');
+      const subtitle = document.getElementById('header-subtitle');
+      const searchInput = document.getElementById('search-input');
+
+      if (tabKey === 'T8') {
+        badge.innerText = 'Trenutna Sezona';
+        subtitle.innerHTML = 'Službena rang ljestvica balkanske Tekken zajednice. Klikni na igrača u <strong style="color:#fff">Top 50</strong> za detaljnu statistiku.';
+        searchInput.placeholder = 'Pretraži igrača...';
+      } else if (tabKey === 'T7') {
+        badge.innerText = 'Hall of Fame Arhiva';
+        subtitle.innerHTML = 'Konačna arhivska ljestvica Tekken 7 ere. Klikni na igrača u <strong style="color:#fff">Top 50</strong> za detaljnu statistiku.';
+        searchInput.placeholder = 'Pretraži igrača...';
       } else {
-        document.getElementById('leaderboard-body').innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--muted)">Učitavanje podataka...</td></tr>';
-        fetchEra(era);
+        badge.innerText = 'Kalendar & Roadmap';
+        subtitle.innerHTML = 'Pregled nadolazećih i završenih turnira kroz godinu. Klikni na bilo koji turnir za lokaciju, satnicu i <strong style="color:#fff">Start.gg prijavu</strong>.';
+        searchInput.placeholder = 'Pretraži turnir ili grad...';
+      }
+
+      document.getElementById('leaderboard-section').classList.toggle('hidden', tabKey === 'TOURNAMENTS');
+      document.getElementById('tournaments-section').classList.toggle('hidden', tabKey !== 'TOURNAMENTS');
+
+      if (DATA_STORE[tabKey]) {
+        renderCurrentView();
+      } else {
+        fetchTabData(tabKey);
+      }
+    }
+
+    function renderCurrentView() {
+      if (currentTab === 'TOURNAMENTS') {
+        renderTournaments();
+      } else {
+        renderTable();
       }
     }
 
     function forceRefresh() {
-      DATA_STORE[currentEra] = null;
-      document.getElementById('leaderboard-body').innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--muted)">Osvježavanje...</td></tr>';
-      fetchEra(currentEra, true);
+      DATA_STORE[currentTab] = null;
+      if (currentTab === 'TOURNAMENTS') {
+        document.getElementById('roadmap-list').innerHTML = '<div style="color:var(--muted); padding:20px">Osvježavanje turnira...</div>';
+      } else {
+        document.getElementById('leaderboard-body').innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--muted)">Osvježavanje...</td></tr>';
+      }
+      fetchTabData(currentTab, true);
     }
 
     function onSearchInput() {
       currentPage = 1;
-      renderTable();
+      renderCurrentView();
     }
 
     function changePage(newPage) {
@@ -508,7 +726,7 @@
     }
 
     function renderTable() {
-      const allData = DATA_STORE[currentEra] || [];
+      const allData = DATA_STORE[currentTab] || [];
       const query = document.getElementById('search-input').value.toLowerCase().trim();
 
       const filtered = query
@@ -573,12 +791,62 @@
       }
     }
 
+    function renderTournaments() {
+      const allTournaments = DATA_STORE['TOURNAMENTS'] || [];
+      const query = document.getElementById('search-input').value.toLowerCase().trim();
+
+      currentDisplayedTournaments = query
+        ? allTournaments.filter(t => t.searchKey.includes(query))
+        : allTournaments;
+
+      const container = document.getElementById('roadmap-list');
+      if (currentDisplayedTournaments.length === 0) {
+        container.innerHTML = '<div style="color:var(--muted); padding:20px">Nema pronađenih turnira.</div>';
+        return;
+      }
+
+      let html = '';
+      for (let i = 0; i < currentDisplayedTournaments.length; i++) {
+        const t = currentDisplayedTournaments[i];
+        let statusLabel = 'Najavljeno';
+        if (t.statusType === 'completed') statusLabel = 'Završeno';
+        else if (t.statusType === 'live') statusLabel = 'U tijeku';
+
+        html += `
+          <div class="roadmap-item" data-tidx="${i}">
+            <div class="roadmap-dot ${t.statusType}"></div>
+            <div>
+              <span class="t-status ${t.statusType}">${statusLabel}</span>
+              <h3 class="tekken-font" style="font-size:20px; font-weight:700; color:#fff">${t.name}</h3>
+              <div class="t-meta">
+                <span>📅 ${t.date}</span>
+                <span>⏰ ${t.time}</span>
+                <span>📍 ${t.location}</span>
+              </div>
+            </div>
+            <div>
+              <span class="btn-card">Detalji & Start.gg ↗</span>
+            </div>
+          </div>
+        `;
+      }
+      container.innerHTML = html;
+    }
+
     function handleTableClick(event) {
       const tr = event.target.closest('tr.top50-row');
       if (!tr) return;
       const idx = parseInt(tr.getAttribute('data-idx'), 10);
       const p = currentDisplayedList[idx];
       if (p && p.rank <= UNLOCKED_LIMIT) openPlayerModal(p);
+    }
+
+    function handleTournamentClick(event) {
+      const item = event.target.closest('.roadmap-item');
+      if (!item) return;
+      const idx = parseInt(item.getAttribute('data-tidx'), 10);
+      const t = currentDisplayedTournaments[idx];
+      if (t) openTournamentModal(t);
     }
 
     function openPlayerModal(p) {
@@ -600,16 +868,53 @@
       document.getElementById('player-modal').classList.add('open');
     }
 
-    function hideModal() {
+    function openTournamentModal(t) {
+      const statusEl = document.getElementById('t-modal-status');
+      statusEl.className = `t-status ${t.statusType}`;
+      statusEl.innerText = t.statusType === 'completed' ? 'Završeno' : (t.statusType === 'live' ? 'U tijeku' : 'Najavljeno');
+
+      document.getElementById('t-modal-name').innerText = t.name;
+      document.getElementById('t-modal-date').innerText = t.date;
+      document.getElementById('t-modal-time').innerText = t.time;
+      document.getElementById('t-modal-location').innerText = t.location;
+
+      const descBox = document.getElementById('t-modal-desc-box');
+      if (t.desc) {
+        descBox.style.display = 'flex';
+        document.getElementById('t-modal-desc').innerText = t.desc;
+      } else {
+        descBox.style.display = 'none';
+      }
+
+      const linkBtn = document.getElementById('t-modal-link');
+      if (t.link) {
+        linkBtn.style.display = 'block';
+        linkBtn.href = t.link.startsWith('http') ? t.link : 'https://' + t.link;
+      } else {
+        linkBtn.style.display = 'none';
+      }
+
+      document.getElementById('tournament-modal').classList.add('open');
+    }
+
+    function hidePlayerModal() {
       document.getElementById('player-modal').classList.remove('open');
     }
-
-    function closeModal(event) {
-      if (event.target.id === 'player-modal') hideModal();
+    function closePlayerModal(event) {
+      if (event.target.id === 'player-modal') hidePlayerModal();
     }
 
-    fetchEra('T8');
-    fetchEra('T7');
+    function hideTournamentModal() {
+      document.getElementById('tournament-modal').classList.remove('open');
+    }
+    function closeTournamentModal(event) {
+      if (event.target.id === 'tournament-modal') hideTournamentModal();
+    }
+
+
+    fetchTabData('T8');
+    fetchTabData('T7');
+    fetchTabData('TOURNAMENTS');
   </script>
 </body>
 </html>
