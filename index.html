@@ -102,7 +102,7 @@
     .toolbar {
       display: flex;
       flex-wrap: wrap;
-      justify-content: space-between;
+      justify-content: flex-start;
       align-items: center;
       gap: 12px;
       margin: 28px 0 18px;
@@ -136,8 +136,6 @@
       white-space: nowrap;
     }
     .refresh-btn:hover { border-color: var(--accent-light); }
-    .legend { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 14px; }
-    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
 
     /* TABLE */
     .table-card {
@@ -162,8 +160,8 @@
       border-bottom: 1px solid var(--border);
       font-size: 14px;
     }
-    tr.top20-row { cursor: pointer; }
-    tr.top20-row:hover { background: rgba(255, 255, 255, 0.04); }
+    tr.top50-row { cursor: pointer; }
+    tr.top50-row:hover { background: rgba(255, 255, 255, 0.04); }
     tr.locked-row { opacity: 0.55; background: var(--card-alt); cursor: not-allowed; }
 
     .rank-badge {
@@ -284,16 +282,6 @@
       border-radius: 10px;
       font-size: 13px;
     }
-    .titles-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-    .title-badge {
-      padding: 4px 10px;
-      font-size: 12px;
-      font-weight: 600;
-      background: #161926;
-      border: 1px solid #2e364f;
-      color: #fcd34d;
-      border-radius: 6px;
-    }
 
     @media (max-width: 640px) {
       .hide-sm { display: none; }
@@ -307,7 +295,7 @@
       <span id="era-badge" class="era-badge">Trenutna Sezona</span>
       <h1 class="tekken-font">Tekken Balkan <span id="title-accent">ELO</span></h1>
       <p class="subtitle">
-        Službena rang ljestvica balkanske Tekken zajednice. Klikni na igrača u <strong style="color:#fff">Top 20</strong> za detaljnu statistiku.
+        Službena rang ljestvica balkanske Tekken zajednice. Klikni na igrača u <strong style="color:#fff">Top 50</strong> za detaljnu statistiku.
       </p>
 
       <div class="tabs">
@@ -322,10 +310,6 @@
       <div class="search-box">
         <input type="text" id="search-input" oninput="onSearchInput()" placeholder="Pretraži igrača..." class="search-input">
         <button onclick="forceRefresh()" class="refresh-btn" title="Povuci najnovije promjene iz tablice">↻ Osvježi</button>
-      </div>
-      <div class="legend">
-        <span><i class="dot" style="background:#10b981"></i>Top 1–20: Otključan profil</span>
-        <span><i class="dot" style="background:#4b5563"></i>21+: Zaključano</span>
       </div>
     </div>
 
@@ -357,7 +341,7 @@
     </div>
   </main>
 
-  <!-- MODAL ZA TOP 20 -->
+  <!-- MODAL ZA TOP 50 -->
   <div id="player-modal" onclick="closeModal(event)" class="modal-overlay">
     <div class="modal-box" onclick="event.stopPropagation()">
       <div class="modal-header">
@@ -397,7 +381,7 @@
           </div>
         </div>
 
-        <!-- DODATNI STUPCI: MAIN, COUNTRY, TITLES -->
+        <!-- DODATNI STUPCI: MAIN, COUNTRY -->
         <div class="info-row">
           <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">Main Lik:</span>
           <span id="modal-main-detail" class="tekken-font" style="color:var(--accent-light); font-weight:700; font-size:16px">Nije navedeno</span>
@@ -407,32 +391,26 @@
           <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">Country:</span>
           <span id="modal-country-detail" style="font-weight:700">Nije navedeno</span>
         </div>
-
-        <div class="info-row" style="flex-direction:column; align-items:flex-start">
-          <span style="color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px">Titles:</span>
-          <div id="modal-titles" class="titles-wrap"></div>
-        </div>
       </div>
     </div>
   </div>
 
   <script>
     const SHEET_URLS = {
-      T8: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=1897594659&single=true&output=csv", // Zalijepi puni T8 CSV link ovdje
+      T8: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=1897594659&single=true&output=csv",
       T7: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=1230236970&single=true&output=csv"
     };
 
-    // Očisti stari spori localStorage cache ako postoji od prošlih verzija
     try {
       localStorage.removeItem('tb_cache_T8');
       localStorage.removeItem('tb_cache_T7');
     } catch (e) {}
 
     const PAGE_SIZE = 50;
+    const UNLOCKED_LIMIT = 50;
     let currentPage = 1;
     let currentEra = 'T8';
 
-    // Brza RAM memorija za podatke (bez blokiranja preglednika)
     const DATA_STORE = { T8: null, T7: null };
     let currentDisplayedList = [];
 
@@ -445,7 +423,7 @@
       for (let i = 0; i < rawRows.length; i++) {
         const r = rawRows[i];
         const player = (r['Player'] || '').trim();
-        if (!player) continue; // Preskoči prazne redove iz Google Sheetsa
+        if (!player) continue;
 
         const rank = parseInt(r['Ranking'] || r['Rank'] || (clean.length + 1), 10);
         const main = (r['Main'] || '').trim();
@@ -460,7 +438,6 @@
           winRate: (r['Win Rate'] || '0%').trim(),
           main: main,
           country: country,
-          titles: (r['Titles'] || r['Titule'] || '').trim(),
           searchKey: (player + ' ' + main + ' ' + country).toLowerCase()
         });
       }
@@ -475,7 +452,7 @@
 
       const url = SHEET_URLS[era];
       if (!isValidCsvUrl(url)) {
-        DATA_STORE[era] = normalizeRows(DEMO_DATA[era] || []);
+        DATA_STORE[era] = [];
         if (currentEra === era) renderTable();
         return;
       }
@@ -489,7 +466,7 @@
           if (currentEra === era) renderTable();
         },
         error: function() {
-          DATA_STORE[era] = normalizeRows(DEMO_DATA[era] || []);
+          DATA_STORE[era] = [];
           if (currentEra === era) renderTable();
         }
       });
@@ -550,7 +527,7 @@
       let html = '';
       for (let i = 0; i < currentDisplayedList.length; i++) {
         const p = currentDisplayedList[i];
-        const isTop20 = p.rank <= 20;
+        const isUnlocked = p.rank <= UNLOCKED_LIMIT;
 
         let rankHtml = `<span class="tekken-font" style="font-weight:700; color:var(--muted)">#${p.rank}</span>`;
         if (p.rank === 1) rankHtml = `<span class="tekken-font rank-badge rank-1">🥇 #1</span>`;
@@ -558,7 +535,7 @@
         else if (p.rank === 3) rankHtml = `<span class="tekken-font rank-badge rank-3">🥉 #3</span>`;
 
         html += `
-          <tr class="${isTop20 ? 'top20-row' : 'locked-row'}" data-idx="${i}">
+          <tr class="${isUnlocked ? 'top50-row' : 'locked-row'}" data-idx="${i}">
             <td style="text-align:center">${rankHtml}</td>
             <td>
               <div>
@@ -571,9 +548,9 @@
             <td class="hide-sm" style="text-align:center; font-weight:700; color:var(--green)">${p.winRate}</td>
             <td class="tekken-font" style="text-align:right; font-size:18px; font-weight:700; color:#fff">${p.elo}</td>
             <td style="text-align:center">
-              ${isTop20
+              ${isUnlocked
                 ? `<span class="btn-card">Kartica ↗</span>`
-                : `<span style="font-size:12px; color:var(--muted)">🔒 21+</span>`
+                : `<span style="font-size:12px; color:var(--muted)">🔒 51+</span>`
               }
             </td>
           </tr>
@@ -597,11 +574,11 @@
     }
 
     function handleTableClick(event) {
-      const tr = event.target.closest('tr.top20-row');
+      const tr = event.target.closest('tr.top50-row');
       if (!tr) return;
       const idx = parseInt(tr.getAttribute('data-idx'), 10);
       const p = currentDisplayedList[idx];
-      if (p && p.rank <= 20) openPlayerModal(p);
+      if (p && p.rank <= UNLOCKED_LIMIT) openPlayerModal(p);
     }
 
     function openPlayerModal(p) {
@@ -619,18 +596,6 @@
       document.getElementById('modal-winrate').innerText = `${numericWinRate}%`;
       document.getElementById('modal-winrate-text').innerText = `${numericWinRate}%`;
       document.getElementById('modal-winrate-bar').style.width = `${Math.min(numericWinRate, 100)}%`;
-
-      const titlesContainer = document.getElementById('modal-titles');
-      if (p.titles) {
-        const parts = p.titles.split(',');
-        titlesContainer.innerHTML = parts
-          .map(t => t.trim())
-          .filter(Boolean)
-          .map(t => `<span class="title-badge">🏅 ${t}</span>`)
-          .join('');
-      } else {
-        titlesContainer.innerHTML = `<span style="font-size:12px; color:var(--muted); font-style:italic">Nema upisanih titula</span>`;
-      }
 
       document.getElementById('player-modal').classList.add('open');
     }
