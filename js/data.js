@@ -93,7 +93,6 @@ function parsePlayerTrend(row, currentRank) {
 
 function parseTournamentTier(row) {
   const rawTier = (getCol(row, ["Tier", "Rank", "Category", "Kategorija", "Class"]) || "B").toUpperCase();
-  const customWeight = getCol(row, ["Multiplier", "Weight", "Points", "Bodovi", "ELO Weight"]);
 
   // Clean formats like "S-Tier", "Tier S", "S Tier", "A+", etc.
   const cleaned = rawTier.replace(/TIER/g, "").replace(/[^A-Z]/g, "").trim();
@@ -130,7 +129,6 @@ function parseTournamentTier(row) {
     tierKey,
     tierLabel: tierInfo.label,
     tierClass: tierInfo.cssClass,
-    tierMultiplier: customWeight || tierInfo.multiplier
   };
 }
 
@@ -214,7 +212,6 @@ function normalizeTournamentRows(rawRows) {
       tierKey: tierData.tierKey,
       tierLabel: tierData.tierLabel,
       tierClass: tierData.tierClass,
-      tierMultiplier: tierData.tierMultiplier,
       searchKey: `${name} ${location} ${date} ${tierData.tierLabel}`.toLowerCase()
     });
   }
