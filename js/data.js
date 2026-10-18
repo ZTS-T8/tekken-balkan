@@ -62,12 +62,15 @@ function resolveSubRegionId(rawCountry, rawRegion) {
   const cIso = resolveCountryIso(rawCountry);
   const rNorm = stripDiacritics(rawRegion);
 
-  // If Slovenia, always map to SI-ALL
+  // Single-region countries: Slovenia & Montenegro
   if (cIso === "si" || rNorm.includes("sloven")) {
     return "SI-ALL";
   }
+  if (cIso === "me" || rNorm.includes("montenegro") || rNorm.includes("crna gora")) {
+    return "ME-ALL";
+  }
 
-  // Try matching within the specified country first
+  // Match within the specified country first
   if (cIso) {
     const countryGroup = CONFIG.REGIONS_CONFIG.find(c => c.countryCode === cIso);
     if (countryGroup) {
@@ -79,7 +82,7 @@ function resolveSubRegionId(rawCountry, rawRegion) {
     }
   }
 
-  // If Country column was omitted, match by region keywords across all 4 countries
+  // Fallback: Match by region keywords across all 5 countries if Country column was left empty
   for (const countryGroup of CONFIG.REGIONS_CONFIG) {
     for (const sub of countryGroup.subRegions) {
       if (sub.id.toLowerCase() === rNorm) return sub.id;
@@ -277,6 +280,8 @@ function getLinkedRegionalPlayers(activeEra = "T8") {
     sourceList.forEach((p, idx) => {
       if (p.countryIso === "si") {
         regionEntries.push({ player: p.player, regionId: "SI-ALL" });
+      } else if (p.countryIso === "me") {
+        regionEntries.push({ player: p.player, regionId: "ME-ALL" });
       } else if (p.countryIso === "hr") {
         const zones = ["HR-ZG", "HR-SL", "HR-CO"];
         regionEntries.push({ player: p.player, regionId: zones[idx % 3] });
@@ -284,8 +289,8 @@ function getLinkedRegionalPlayers(activeEra = "T8") {
         const zones = ["BA-NO", "BA-CE", "BA-SO"];
         regionEntries.push({ player: p.player, regionId: zones[idx % 3] });
       } else if (p.countryIso === "rs") {
-        const zones = ["RS-VO", "RS-BG", "RS-SO"];
-        regionEntries.push({ player: p.player, regionId: zones[idx % 3] });
+        const zones = ["RS-VO", "RS-BG", "RS-WE", "RS-EA", "RS-SO"];
+        regionEntries.push({ player: p.player, regionId: zones[idx % 5] });
       }
     });
   }
@@ -314,7 +319,6 @@ function getLinkedRegionalPlayers(activeEra = "T8") {
     });
   }
 
-  // Sort highest ELO first
   linked.sort((a, b) => b.eloNum - a.eloNum);
   return linked;
 }
