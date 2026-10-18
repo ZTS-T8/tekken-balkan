@@ -28,7 +28,6 @@ function getCol(row, possibleNames) {
 function resolveCountryIso(rawCountry) {
   if (!rawCountry) return "";
 
-  // Strip diacritics (č, ć, š, đ, ž -> c, c, s, d, z) and extra punctuation
   const normalized = rawCountry
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -39,12 +38,10 @@ function resolveCountryIso(rawCountry) {
     return CONFIG.COUNTRY_CODES[normalized];
   }
 
-  // If valid 2-letter code directly
   if (/^[a-z]{2}$/.test(normalized)) {
     return normalized;
   }
 
-  // Check if any known country name or code is part of the string (e.g., "HR - Croatia")
   const parts = normalized.split(/[\s,/-]+/).filter(Boolean);
   for (let i = 0; i < parts.length; i++) {
     if (CONFIG.COUNTRY_CODES[parts[i]]) {
@@ -91,10 +88,21 @@ function parsePlayerTrend(row, currentRank) {
   return null;
 }
 
+// Helper: Parses "[1500, 1520.6, 1540.0, ...]" into an array of numbers
+function parseEloHistory(row) {
+  const rawHistory = getCol(row, ["Elo History", "ELO History", "Elo_History", "History"]);
+  if (!rawHistory) return [];
+
+  const matches = rawHistory.match(/-?\d+(\.\d+)?/g);
+  if (!matches) return [];
+
+  return matches
+    .map(val => parseFloat(val))
+    .filter(num => !isNaN(num) && isFinite(num));
+}
+
 function parseTournamentTier(row) {
   const rawTier = (getCol(row, ["Tier", "Rank", "Category", "Kategorija", "Class"]) || "B").toUpperCase();
-
-  // Clean formats like "S-Tier", "Tier S", "S Tier", "A+", etc.
   const cleaned = rawTier.replace(/TIER/g, "").replace(/[^A-Z]/g, "").trim();
 
   let tierKey = "B";
@@ -128,7 +136,7 @@ function parseTournamentTier(row) {
   return {
     tierKey,
     tierLabel: tierInfo.label,
-    tierClass: tierInfo.cssClass,
+    tierClass: tierInfo.cssClass
   };
 }
 
@@ -147,6 +155,7 @@ function normalizePlayerRows(rawRows) {
     const country = getCol(r, ["Country", "Drzava", "Država", "Nation", "Region"]);
     const countryIso = resolveCountryIso(country);
     const trend = parsePlayerTrend(r, finalRank);
+    const eloHistory = parseEloHistory(r);
 
     clean.push({
       rank: finalRank,
@@ -159,6 +168,7 @@ function normalizePlayerRows(rawRows) {
       country: country,
       countryIso: countryIso,
       trend: trend,
+      eloHistory: eloHistory,
       searchKey: `${player} ${main} ${country}`.toLowerCase()
     });
   }
@@ -231,7 +241,6 @@ function fetchTabData(tabKey, force = false, onComplete) {
     return;
   }
 
-  // Add cache-buster when forcing refresh so newly added columns appear right away
   const fetchUrl = force ? `${baseUrl}&_cb=${Date.now()}` : baseUrl;
 
   Papa.parse(fetchUrl, {
