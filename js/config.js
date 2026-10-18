@@ -5,39 +5,31 @@ const CONFIG = {
   SHEET_URLS: {
     T8: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=1897594659&single=true&output=csv",
     T7: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=1230236970&single=true&output=csv",
-    TOURNAMENTS: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=975571095&single=true&output=csv",
-    REGIONS: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=985306843&single=true&output=csv" 
+    TOURNAMENTS: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=975571095&single=true&output=csv"
   },
 
+  // Maps common country inputs in Google Sheets to ISO 2-letter flag codes
   COUNTRY_CODES: {
-    hr: "hr", cro: "hr", croatia: "hr", hrvatska: "hr",
-    rs: "rs", srb: "rs", serbia: "rs", srbija: "rs",
-    ba: "ba", bih: "ba", bosnia: "ba", "bosna i hercegovina": "ba", "bosnia and herzegovina": "ba", "bosnia & herzegovina": "ba",
-    si: "si", slo: "si", svn: "si", slovenia: "si", slovenija: "si",
-    mk: "mk", mkd: "mk", macedonia: "mk", "north macedonia": "mk", makedonija: "mk", "severna makedonija": "mk", "sjeverna makedonija": "mk",
-    me: "me", mne: "me", montenegro: "me", "crna gora": "me",
-    al: "al", alb: "al", albania: "al", albanija: "al", shqiperia: "al",
-    xk: "xk", kos: "xk", rks: "xk", kosovo: "xk",
-    bg: "bg", bul: "bg", bgr: "bg", bulgaria: "bg", bugarska: "bg",
-    ro: "ro", rou: "ro", rom: "ro", romania: "ro", rumunija: "ro", rumunjska: "ro",
-    gr: "gr", gre: "gr", grc: "gr", greece: "gr", grcka: "gr",
-    hu: "hu", hun: "hu", hungary: "hu", madarska: "hu", madjarska: "hu",
-    at: "at", aut: "at", austria: "at", austrija: "at",
-    de: "de", ger: "de", deu: "de", germany: "de", njemacka: "de", nemacka: "de",
-    it: "it", ita: "it", italy: "it", italija: "it",
-    tr: "tr", tur: "tr", turkey: "tr", turkiye: "tr", turska: "tr",
-    gb: "gb", uk: "gb", eng: "gb", "united kingdom": "gb", england: "gb",
-    fr: "fr", fra: "fr", france: "fr",
-    es: "es", esp: "es", spain: "es",
-    pl: "pl", pol: "pl", poland: "pl",
-    se: "se", swe: "se", sweden: "se",
-    no: "no", nor: "no", norway: "no",
-    ch: "ch", sui: "ch", switzerland: "ch",
-    nl: "nl", ned: "nl", netherlands: "nl",
-    us: "us", usa: "us",
+    hr: "hr", croatia: "hr", hrvatska: "hr", cro: "hr",
+    rs: "rs", serbia: "rs", srbija: "rs", srb: "rs",
+    ba: "ba", bosnia: "ba", bih: "ba", "bosnia and herzegovina": "ba",
+    si: "si", slovenia: "si", slovenija: "si", slo: "si",
+    mk: "mk", macedonia: "mk", "north macedonia": "mk", makedonija: "mk", mkd: "mk",
+    me: "me", montenegro: "me", "crna gora": "me", mne: "me",
+    al: "al", albania: "al", alb: "al",
+    xk: "xk", kosovo: "xk", kos: "xk",
+    bg: "bg", bulgaria: "bg", bul: "bg",
+    ro: "ro", romania: "ro", rou: "ro",
+    gr: "gr", greece: "gr", gre: "gr",
+    hu: "hu", hungary: "hu", hun: "hu",
+    at: "at", austria: "at", aut: "at",
+    de: "de", germany: "de", ger: "de",
+    it: "it", italy: "it", ita: "it",
+    tr: "tr", turkey: "tr", tur: "tr",
     eu: "eu", europe: "eu"
   },
 
+  // Tournament Tier Classification & Points Weighting
   TOURNAMENT_TIERS: {
     S: {
       label: "🏆 S-Tier Major",
@@ -55,53 +47,6 @@ const CONFIG = {
       cssClass: "tier-b"
     }
   },
-
-  // 5 Countries & 13 Sub-Regions Configuration
-  REGIONS_CONFIG: [
-    {
-      countryCode: "hr",
-      countryName: "Croatia",
-      subRegions: [
-        { id: "HR-ZG", name: "Zagreb & Central", keywords: ["zagreb", "central", "sredisnja", "sjever", "north", "varazdin", "karlovac"] },
-        { id: "HR-SL", name: "Slavonia", keywords: ["slavonia", "slavonija", "osijek", "brod", "vukovar", "vinkovci", "east", "istok"] },
-        { id: "HR-CO", name: "Coastal (Dalmatia & Istria)", keywords: ["coastal", "obala", "dalmatia", "dalmacija", "istria", "istra", "primorje", "split", "rijeka", "zadar", "sibenik", "dubrovnik", "pula", "south", "jug"] }
-      ]
-    },
-    {
-      countryCode: "si",
-      countryName: "Slovenia",
-      subRegions: [
-        { id: "SI-ALL", name: "Slovenia", keywords: ["slovenia", "slovenija", "ljubljana", "maribor", "celje", "koper", "kranj", "all"] }
-      ]
-    },
-    {
-      countryCode: "ba",
-      countryName: "Bosnia & Herzegovina",
-      subRegions: [
-        { id: "BA-NO", name: "North (Krajina & Tuzla)", keywords: ["north", "sjever", "krajina", "banja luka", "tuzla", "posavina", "bihac", "bijeljina", "doboj", "brcko"] },
-        { id: "BA-CE", name: "Central (Sarajevo)", keywords: ["central", "srednja", "sarajevo", "zenica", "travnik", "visoko"] },
-        { id: "BA-SO", name: "South (Herzegovina)", keywords: ["south", "jug", "herzegovina", "hercegovina", "mostar", "trebinje", "capljina"] }
-      ]
-    },
-    {
-      countryCode: "rs",
-      countryName: "Serbia",
-      subRegions: [
-        { id: "RS-VO", name: "Vojvodina", keywords: ["vojvodina", "north", "sever", "sjever", "novi sad", "subotica", "zrenjanin", "pancevo", "sombor", "kikinda", "vrsac"] },
-        { id: "RS-BG", name: "Belgrade Region", keywords: ["belgrade", "beograd", "bg", "zemun", "novi beograd"] },
-        { id: "RS-WE", name: "Western Serbia", keywords: ["western", "west", "zapad", "zapadna", "sumadija", "uzice", "cacak", "kraljevo", "valjevo", "sabac", "loznica", "novi pazar", "kragujevac", "zlatibor"] },
-        { id: "RS-EA", name: "Eastern Serbia", keywords: ["eastern", "east", "istok", "istocna", "bor", "zajecar", "pozarevac", "smederevo", "negotin", "kladovo", "majdanpek", "jagodina", "cuprija", "paracin"] },
-        { id: "RS-SO", name: "Southern Serbia", keywords: ["southern", "south", "jug", "juzna", "nis", "leskovac", "vranje", "pirot", "prokuplje", "krusevac"] }
-      ]
-    },
-    {
-      countryCode: "me",
-      countryName: "Montenegro",
-      subRegions: [
-        { id: "ME-ALL", name: "Montenegro", keywords: ["montenegro", "crna gora", "podgorica", "niksic", "budva", "bar", "herceg novi", "kotor", "tivat", "cetinje", "bijelo polje", "all"] }
-      ]
-    }
-  ],
 
   TAB_META: {
     T8: {
@@ -121,12 +66,6 @@ const CONFIG = {
       subtitle: 'Overview of upcoming and completed community tournaments. Click on any event for tier weighting, schedule, and <strong class="text-white">Start.gg registration</strong>.',
       searchPlaceholder: "Search tournament, tier, or city...",
       bodyClass: "era-tournaments"
-    },
-    REGIONS: {
-      badge: "Regional Distribution",
-      subtitle: 'Interactive breakdown of players across <strong class="text-white">Croatia, Slovenia, Bosnia & Herzegovina, Serbia, and Montenegro</strong> linked to Tekken 8 & Tekken 7 stats.',
-      searchPlaceholder: "Search player or region...",
-      bodyClass: "era-regions"
     }
   }
 };
