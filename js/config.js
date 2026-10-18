@@ -1,6 +1,6 @@
 const CONFIG = {
   PAGE_SIZE: 50,
-  UNLOCKED_LIMIT: 50,
+  UNLOCKED_LIMIT: 200,
 
   SHEET_URLS: {
     T8: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=1897594659&single=true&output=csv",
