@@ -1,14 +1,14 @@
 const DATA_STORE = {
   T8: null,
   T7: null,
-  TOURNAMENTS: null
+  TOURNAMENTS: null,
+  REGIONS: null
 };
 
 function isValidCsvUrl(url) {
   return typeof url === "string" && url.length > 65 && url.includes("output=csv");
 }
 
-// Helper: Reads a column from a CSV row regardless of spaces, \r, or capitalization
 function getCol(row, possibleNames) {
   if (!row) return "";
   const rowKeys = Object.keys(row);
@@ -24,27 +24,25 @@ function getCol(row, possibleNames) {
   return "";
 }
 
-// Helper: Resolves country text (even with diacritics or slashes) to a 2-letter ISO code
-function resolveCountryIso(rawCountry) {
-  if (!rawCountry) return "";
-
-  // Strip diacritics (č, ć, š, đ, ž -> c, c, s, d, z) and extra punctuation
-  const normalized = rawCountry
+function stripDiacritics(str) {
+  return String(str || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim();
+}
+
+function resolveCountryIso(rawCountry) {
+  if (!rawCountry) return "";
+  const normalized = stripDiacritics(rawCountry);
 
   if (CONFIG.COUNTRY_CODES[normalized]) {
     return CONFIG.COUNTRY_CODES[normalized];
   }
-
-  // If valid 2-letter code directly
   if (/^[a-z]{2}$/.test(normalized)) {
     return normalized;
   }
 
-  // Check if any known country name or code is part of the string (e.g., "HR - Croatia")
   const parts = normalized.split(/[\s,/-]+/).filter(Boolean);
   for (let i = 0; i < parts.length; i++) {
     if (CONFIG.COUNTRY_CODES[parts[i]]) {
@@ -55,6 +53,37 @@ function resolveCountryIso(rawCountry) {
   for (const [key, iso] of Object.entries(CONFIG.COUNTRY_CODES)) {
     if (key.length > 3 && normalized.includes(key)) {
       return iso;
+    }
+  }
+  return "";
+}
+
+function resolveSubRegionId(rawCountry, rawRegion) {
+  const cIso = resolveCountryIso(rawCountry);
+  const rNorm = stripDiacritics(rawRegion);
+
+  // If Slovenia, always map to SI-ALL
+  if (cIso === "si" || rNorm.includes("sloven")) {
+    return "SI-ALL";
+  }
+
+  // Try matching within the specified country first
+  if (cIso) {
+    const countryGroup = CONFIG.REGIONS_CONFIG.find(c => c.countryCode === cIso);
+    if (countryGroup) {
+      for (const sub of countryGroup.subRegions) {
+        if (sub.id.toLowerCase() === rNorm) return sub.id;
+        if (sub.keywords.some(k => rNorm.includes(k))) return sub.id;
+      }
+      return countryGroup.subRegions[0].id;
+    }
+  }
+
+  // If Country column was omitted, match by region keywords across all 4 countries
+  for (const countryGroup of CONFIG.REGIONS_CONFIG) {
+    for (const sub of countryGroup.subRegions) {
+      if (sub.id.toLowerCase() === rNorm) return sub.id;
+      if (sub.keywords.some(k => rNorm.includes(k))) return sub.id;
     }
   }
 
@@ -94,8 +123,6 @@ function parsePlayerTrend(row, currentRank) {
 function parseTournamentTier(row) {
   const rawTier = (getCol(row, ["Tier", "Rank", "Category", "Kategorija", "Class"]) || "B").toUpperCase();
   const customWeight = getCol(row, ["Multiplier", "Weight", "Points", "Bodovi", "ELO Weight"]);
-
-  // Clean formats like "S-Tier", "Tier S", "S Tier", "A+", etc.
   const cleaned = rawTier.replace(/TIER/g, "").replace(/[^A-Z]/g, "").trim();
 
   let tierKey = "B";
@@ -115,14 +142,6 @@ function parseTournamentTier(row) {
     rawTier.includes("CHALLENGER")
   ) {
     tierKey = "A";
-  } else if (
-    cleaned === "B" ||
-    rawTier.startsWith("B") ||
-    rawTier.includes("WEEKLY") ||
-    rawTier.includes("COMMUNITY") ||
-    rawTier.includes("LOCAL")
-  ) {
-    tierKey = "B";
   }
 
   const tierInfo = CONFIG.TOURNAMENT_TIERS[tierKey] || CONFIG.TOURNAMENT_TIERS.B;
@@ -221,6 +240,85 @@ function normalizeTournamentRows(rawRows) {
   return clean;
 }
 
+function normalizeRegionRows(rawRows) {
+  const clean = [];
+  for (let i = 0; i < rawRows.length; i++) {
+    const r = rawRows[i];
+    const player = getCol(r, ["Player", "Igrac", "Name", "Nick"]);
+    if (!player) continue;
+
+    const rawCountry = getCol(r, ["Country", "Drzava", "Država"]);
+    const rawRegion = getCol(r, ["Region", "Regija", "Subregion", "Area", "City", "Grad"]);
+    const regionId = resolveSubRegionId(rawCountry, rawRegion);
+    if (!regionId) continue;
+
+    clean.push({
+      player,
+      regionId,
+      rawRegion
+    });
+  }
+  return clean;
+}
+
+// Links players from Sheet 4 (REGIONS) with their live stats in T8 and T7
+function getLinkedRegionalPlayers(activeEra = "T8") {
+  const t8Map = new Map();
+  const t7Map = new Map();
+
+  (DATA_STORE.T8 || []).forEach(p => t8Map.set(p.player.toLowerCase(), p));
+  (DATA_STORE.T7 || []).forEach(p => t7Map.set(p.player.toLowerCase(), p));
+
+  let regionEntries = DATA_STORE.REGIONS || [];
+
+  // Fallback preview: If 4th sheet URL isn't configured yet, auto-distribute existing players with countries
+  if (regionEntries.length === 0) {
+    const sourceList = DATA_STORE[activeEra] || DATA_STORE.T8 || [];
+    sourceList.forEach((p, idx) => {
+      if (p.countryIso === "si") {
+        regionEntries.push({ player: p.player, regionId: "SI-ALL" });
+      } else if (p.countryIso === "hr") {
+        const zones = ["HR-ZG", "HR-SL", "HR-CO"];
+        regionEntries.push({ player: p.player, regionId: zones[idx % 3] });
+      } else if (p.countryIso === "ba") {
+        const zones = ["BA-NO", "BA-CE", "BA-SO"];
+        regionEntries.push({ player: p.player, regionId: zones[idx % 3] });
+      } else if (p.countryIso === "rs") {
+        const zones = ["RS-VO", "RS-BG", "RS-SO"];
+        regionEntries.push({ player: p.player, regionId: zones[idx % 3] });
+      }
+    });
+  }
+
+  const linked = [];
+  for (let i = 0; i < regionEntries.length; i++) {
+    const entry = regionEntries[i];
+    const key = entry.player.toLowerCase();
+    const pT8 = t8Map.get(key) || null;
+    const pT7 = t7Map.get(key) || null;
+    const activeProfile = activeEra === "T7" ? pT7 : pT8;
+    const fallbackProfile = pT8 || pT7;
+
+    const countryCode = entry.regionId.split("-")[0].toLowerCase();
+
+    linked.push({
+      player: entry.player,
+      regionId: entry.regionId,
+      countryIso: countryCode,
+      country: (fallbackProfile && fallbackProfile.country) || countryCode.toUpperCase(),
+      activeStats: activeProfile,
+      t8Stats: pT8,
+      t7Stats: pT7,
+      eloNum: activeProfile ? parseFloat(activeProfile.elo) || 0 : 0,
+      main: (activeProfile && activeProfile.main) || (fallbackProfile && fallbackProfile.main) || ""
+    });
+  }
+
+  // Sort highest ELO first
+  linked.sort((a, b) => b.eloNum - a.eloNum);
+  return linked;
+}
+
 function fetchTabData(tabKey, force = false, onComplete) {
   if (DATA_STORE[tabKey] && !force) {
     if (onComplete) onComplete(DATA_STORE[tabKey]);
@@ -234,7 +332,6 @@ function fetchTabData(tabKey, force = false, onComplete) {
     return;
   }
 
-  // Add cache-buster when forcing refresh so newly added columns appear right away
   const fetchUrl = force ? `${baseUrl}&_cb=${Date.now()}` : baseUrl;
 
   Papa.parse(fetchUrl, {
@@ -243,10 +340,13 @@ function fetchTabData(tabKey, force = false, onComplete) {
     skipEmptyLines: "greedy",
     complete: function (results) {
       const raw = results.data || [];
-      DATA_STORE[tabKey] =
-        tabKey === "TOURNAMENTS"
-          ? normalizeTournamentRows(raw)
-          : normalizePlayerRows(raw);
+      if (tabKey === "TOURNAMENTS") {
+        DATA_STORE[tabKey] = normalizeTournamentRows(raw);
+      } else if (tabKey === "REGIONS") {
+        DATA_STORE[tabKey] = normalizeRegionRows(raw);
+      } else {
+        DATA_STORE[tabKey] = normalizePlayerRows(raw);
+      }
       if (onComplete) onComplete(DATA_STORE[tabKey]);
     },
     error: function () {
