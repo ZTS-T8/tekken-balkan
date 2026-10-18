@@ -314,8 +314,8 @@ function renderRegions() {
   const titleEl = document.getElementById("inspector-title");
 
   if (selectedRegionId === "ALL") {
-    badgeEl.innerText = "All 4 Countries";
-    titleEl.innerText = "All Balkan Regions (10)";
+    badgeEl.innerText = "All 5 Countries";
+    titleEl.innerText = "All Balkan Regions (13)";
   } else {
     const meta = getRegionMetaById(selectedRegionId);
     badgeEl.innerText = meta ? meta.countryName : selectedRegionId;
