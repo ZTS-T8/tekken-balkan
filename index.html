@@ -85,7 +85,7 @@
 
   <!-- MODAL FOR TOP 50 PLAYERS -->
   <div id="player-modal" class="modal-overlay">
-    <div class="modal-box">
+    <div id="player-modal-box" class="modal-box">
       <div class="modal-header">
         <div>
           <div class="modal-badge-row">
@@ -98,40 +98,58 @@
         <button id="close-player-modal" class="close-btn">&times;</button>
       </div>
 
-      <div class="modal-body">
-        <div class="stats-grid">
-          <div class="stat-box">
-            <div class="stat-label">ELO Rating</div>
-            <div id="modal-elo" class="stat-val tekken-font">0</div>
+      <div class="modal-body player-modal-grid">
+        <!-- LEFT COLUMN: REGULAR PLAYER INFO -->
+        <div class="player-info-col">
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div class="stat-label">ELO Rating</div>
+              <div id="modal-elo" class="stat-val tekken-font">0</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Wins / Matches</div>
+              <div id="modal-matches" class="stat-val tekken-font">0 / 0</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Win Rate</div>
+              <div id="modal-winrate" class="stat-val tekken-font text-green">0%</div>
+            </div>
           </div>
-          <div class="stat-box">
-            <div class="stat-label">Wins / Matches</div>
-            <div id="modal-matches" class="stat-val tekken-font">0 / 0</div>
+
+          <div>
+            <div class="winrate-header">
+              <span class="info-label">Match Win Rate</span>
+              <span id="modal-winrate-text" class="text-green font-bold">0%</span>
+            </div>
+            <div class="bar-bg">
+              <div id="modal-winrate-bar" class="bar-fill"></div>
+            </div>
           </div>
-          <div class="stat-box">
-            <div class="stat-label">Win Rate</div>
-            <div id="modal-winrate" class="stat-val tekken-font text-green">0%</div>
+
+          <div class="info-row">
+            <span class="info-label">Main Character:</span>
+            <span id="modal-main-detail" class="tekken-font main-char-value">Not specified</span>
+          </div>
+
+          <div class="info-row">
+            <span class="info-label">Country:</span>
+            <span id="modal-country-detail" class="font-bold country-detail-flex">Not specified</span>
           </div>
         </div>
 
-        <div>
-          <div class="winrate-header">
-            <span class="info-label">Match Win Rate</span>
-            <span id="modal-winrate-text" class="text-green font-bold">0%</span>
+        <!-- RIGHT COLUMN: ELO PROGRESSION GRAPH (SHOWN IF ELO HISTORY EXISTS) -->
+        <div id="elo-chart-col" class="elo-chart-col hidden">
+          <div class="chart-header">
+            <span class="info-label">📈 ELO Progression</span>
+            <div class="chart-summary-pills">
+              <span id="chart-peak-elo" class="chart-pill">Peak: 0</span>
+              <span id="chart-net-change" class="chart-pill">+0</span>
+            </div>
           </div>
-          <div class="bar-bg">
-            <div id="modal-winrate-bar" class="bar-fill"></div>
+          <div class="chart-box">
+            <div id="chart-tooltip" class="chart-tooltip hidden"></div>
+            <svg id="elo-chart-svg" viewBox="0 0 430 230" xmlns="http://www.w3.org/2000/svg"></svg>
           </div>
-        </div>
-
-        <div class="info-row">
-          <span class="info-label">Main Character:</span>
-          <span id="modal-main-detail" class="tekken-font main-char-value">Not specified</span>
-        </div>
-
-        <div class="info-row">
-          <span class="info-label">Country:</span>
-          <span id="modal-country-detail" class="font-bold country-detail-flex">Not specified</span>
         </div>
       </div>
     </div>
