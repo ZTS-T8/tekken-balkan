@@ -210,7 +210,6 @@ function renderTournaments() {
     const safeStatusType = escapeHTML(t.statusType);
     const safeTierClass = escapeHTML(t.tierClass);
     const safeTierLabel = escapeHTML(t.tierLabel);
-    const safeTierMultiplier = escapeHTML(t.tierMultiplier);
     const safeName = escapeHTML(t.name);
     const safeDate = escapeHTML(t.date);
     const safeTime = escapeHTML(t.time);
@@ -223,7 +222,6 @@ function renderTournaments() {
           <div class="t-badge-group">
             <span class="t-status ${safeStatusType}">${statusLabel}</span>
             <span class="tier-badge ${safeTierClass}">${safeTierLabel}</span>
-            <span class="tier-weight-pill tekken-font">⚖️ ${safeTierMultiplier}</span>
           </div>
           <h3 class="tekken-font t-title">${safeName}</h3>
           <div class="t-meta">
@@ -291,7 +289,6 @@ function openTournamentModal(t) {
   tierBadgeEl.className = `tier-badge ${t.tierClass}`;
   tierBadgeEl.innerText = t.tierLabel;
 
-  document.getElementById("t-modal-weight").innerText = t.tierMultiplier;
   document.getElementById("t-modal-name").innerText = t.name;
   document.getElementById("t-modal-date").innerText = t.date;
   document.getElementById("t-modal-time").innerText = t.time;
