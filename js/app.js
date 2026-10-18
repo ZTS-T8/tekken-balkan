@@ -3,6 +3,11 @@ let currentTab = "T8";
 let currentDisplayedList = [];
 let currentDisplayedTournaments = [];
 
+// Regional Map State
+let selectedRegionId = "ALL";
+let regionStatsEra = "T8";
+let currentRegionalList = [];
+
 function escapeHTML(str) {
   return String(str || "")
     .replace(/&/g, "&amp;")
@@ -43,6 +48,17 @@ function renderTrendHtml(trend) {
   return `<span class="trend-same" title="No rank change">—</span>`;
 }
 
+function getRegionMetaById(regionId) {
+  for (const country of CONFIG.REGIONS_CONFIG) {
+    for (const sub of country.subRegions) {
+      if (sub.id === regionId) {
+        return { countryName: country.countryName, countryCode: country.countryCode, subName: sub.name };
+      }
+    }
+  }
+  return null;
+}
+
 function switchTab(tabKey) {
   if (currentTab === tabKey) return;
   currentTab = tabKey;
@@ -59,9 +75,9 @@ function switchTab(tabKey) {
   document.getElementById("header-subtitle").innerHTML = meta.subtitle;
   document.getElementById("search-input").placeholder = meta.searchPlaceholder;
 
-  const isTournaments = tabKey === "TOURNAMENTS";
-  document.getElementById("leaderboard-section").classList.toggle("hidden", isTournaments);
-  document.getElementById("tournaments-section").classList.toggle("hidden", !isTournaments);
+  document.getElementById("leaderboard-section").classList.toggle("hidden", tabKey !== "T8" && tabKey !== "T7");
+  document.getElementById("tournaments-section").classList.toggle("hidden", tabKey !== "TOURNAMENTS");
+  document.getElementById("regions-section").classList.toggle("hidden", tabKey !== "REGIONS");
 
   if (DATA_STORE[tabKey]) {
     renderCurrentView();
@@ -75,6 +91,8 @@ function switchTab(tabKey) {
 function renderCurrentView() {
   if (currentTab === "TOURNAMENTS") {
     renderTournaments();
+  } else if (currentTab === "REGIONS") {
+    renderRegions();
   } else {
     renderTable();
   }
@@ -85,6 +103,9 @@ function forceRefresh() {
   if (currentTab === "TOURNAMENTS") {
     document.getElementById("roadmap-list").innerHTML =
       '<div class="empty-cell">Refreshing tournaments...</div>';
+  } else if (currentTab === "REGIONS") {
+    document.getElementById("region-players-list").innerHTML =
+      '<div class="empty-cell">Refreshing regional data...</div>';
   } else {
     document.getElementById("leaderboard-body").innerHTML =
       '<tr><td colspan="6" class="empty-cell">Refreshing...</td></tr>';
@@ -241,6 +262,160 @@ function renderTournaments() {
   container.innerHTML = html;
 }
 
+function selectRegion(regionId) {
+  selectedRegionId = regionId;
+  renderRegions();
+}
+
+function renderRegions() {
+  const allLinked = getLinkedRegionalPlayers(regionStatsEra);
+  const query = document.getElementById("search-input").value.toLowerCase().trim();
+
+  // Count players per sub-region
+  const countsByRegion = {};
+  CONFIG.REGIONS_CONFIG.forEach(c => {
+    c.subRegions.forEach(sub => {
+      countsByRegion[sub.id] = 0;
+    });
+  });
+
+  allLinked.forEach(item => {
+    if (countsByRegion[item.regionId] !== undefined) {
+      countsByRegion[item.regionId]++;
+    }
+  });
+
+  // Update SVG map counts & active highlights
+  document.querySelectorAll(".map-zone").forEach(zoneEl => {
+    const rId = zoneEl.getAttribute("data-region");
+    const count = countsByRegion[rId] || 0;
+    const countText = document.getElementById(`svg-count-${rId}`);
+    if (countText) countText.textContent = `${count}p`;
+    zoneEl.classList.toggle("active", selectedRegionId === rId);
+  });
+
+  // Filter for right-hand inspector
+  const filtered = allLinked.filter(item => {
+    const matchesRegion = selectedRegionId === "ALL" || item.regionId === selectedRegionId;
+    const regionMeta = getRegionMetaById(item.regionId);
+    const regionName = regionMeta ? `${regionMeta.countryName} ${regionMeta.subName}`.toLowerCase() : "";
+    const matchesQuery =
+      !query ||
+      item.player.toLowerCase().includes(query) ||
+      item.main.toLowerCase().includes(query) ||
+      regionName.includes(query);
+    return matchesRegion && matchesQuery;
+  });
+
+  currentRegionalList = filtered;
+
+  // Update Inspector Header
+  const badgeEl = document.getElementById("inspector-country-badge");
+  const titleEl = document.getElementById("inspector-title");
+
+  if (selectedRegionId === "ALL") {
+    badgeEl.innerText = "All 4 Countries";
+    titleEl.innerText = "All Balkan Regions (10)";
+  } else {
+    const meta = getRegionMetaById(selectedRegionId);
+    badgeEl.innerText = meta ? meta.countryName : selectedRegionId;
+    titleEl.innerText = meta ? meta.subName : selectedRegionId;
+  }
+
+  // Update Inspector Summary Stats
+  const rankedPlayers = filtered.filter(p => p.eloNum > 0);
+  const avgElo =
+    rankedPlayers.length > 0
+      ? Math.round(rankedPlayers.reduce((sum, p) => sum + p.eloNum, 0) / rankedPlayers.length)
+      : 0;
+
+  document.getElementById("inspector-player-count").innerText = filtered.length;
+  document.getElementById("inspector-avg-elo").innerText = avgElo || "—";
+  document.getElementById("inspector-top-player").innerText =
+    rankedPlayers.length > 0 ? rankedPlayers[0].player : "—";
+
+  // Render Inspector Player List
+  const listEl = document.getElementById("region-players-list");
+  if (filtered.length === 0) {
+    listEl.innerHTML = `<div class="empty-cell">No players found in this region.</div>`;
+  } else {
+    let listHtml = "";
+    filtered.forEach((item, idx) => {
+      const stats = item.activeStats;
+      const isUnlocked = stats && stats.rank <= CONFIG.UNLOCKED_LIMIT;
+      const rMeta = getRegionMetaById(item.regionId);
+      const safePlayer = escapeHTML(item.player);
+      const safeMain = escapeHTML(item.main);
+      const safeSubName = escapeHTML(rMeta ? rMeta.subName : item.regionId);
+      const flagHtml = renderCountryFlagHtml(item.country, item.countryIso);
+
+      const rankLabel = stats ? `#${escapeHTML(stats.rank)}` : "Unranked";
+      const eloLabel = stats ? `${escapeHTML(stats.elo)} ELO` : `No ${regionStatsEra} Data`;
+
+      listHtml += `
+        <div class="region-player-item ${isUnlocked ? "" : "locked"}" data-ridx="${idx}">
+          <div>
+            <div class="player-name-row">
+              <span class="tekken-font font-bold text-muted">${rankLabel}</span>
+              <strong class="text-white">${safePlayer}</strong>
+              ${flagHtml}
+            </div>
+            <div class="char-sub">📍 ${safeSubName} ${safeMain ? `• ${safeMain}` : ""}</div>
+          </div>
+          <div class="text-right">
+            <div class="tekken-font font-bold text-white">${eloLabel}</div>
+            <div style="font-size:11px; color:var(--accent-light)">
+              ${isUnlocked ? "View Card ↗" : stats ? `🔒 #${stats.rank}` : ""}
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    listEl.innerHTML = listHtml;
+  }
+
+  // Render Bottom Country & Sub-Region Breakdown Cards
+  const gridEl = document.getElementById("country-breakdown-grid");
+  let cardsHtml = "";
+
+  CONFIG.REGIONS_CONFIG.forEach(country => {
+    const totalCountryPlayers = country.subRegions.reduce(
+      (sum, sub) => sum + (countsByRegion[sub.id] || 0),
+      0
+    );
+    const flagImg = `<img src="https://flagcdn.com/${country.countryCode}.svg" alt="${escapeHTML(country.countryName)}" class="flag-icon">`;
+
+    let subRowsHtml = "";
+    country.subRegions.forEach(sub => {
+      const c = countsByRegion[sub.id] || 0;
+      const isActive = selectedRegionId === sub.id;
+      subRowsHtml += `
+        <div class="subregion-row ${isActive ? "active" : ""}" data-region-select="${sub.id}">
+          <span>📍 <strong>${escapeHTML(sub.name)}</strong></span>
+          <span class="tekken-font font-bold text-white">${c} ${c === 1 ? "player" : "players"}</span>
+        </div>
+      `;
+    });
+
+    cardsHtml += `
+      <div class="country-card">
+        <div class="country-card-header">
+          <div class="player-name-row">
+            ${flagImg}
+            <h4 class="tekken-font" style="font-size:18px; text-transform:uppercase">${escapeHTML(country.countryName)}</h4>
+          </div>
+          <span class="era-badge">${totalCountryPlayers} Players</span>
+        </div>
+        <div class="subregion-list">
+          ${subRowsHtml}
+        </div>
+      </div>
+    `;
+  });
+
+  gridEl.innerHTML = cardsHtml;
+}
+
 function openPlayerModal(p) {
   document.getElementById("modal-rank").innerText = `#${p.rank}`;
   document.getElementById("modal-player").innerText = p.player;
@@ -331,6 +506,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btn-prev-page").addEventListener("click", () => changePage(currentPage - 1));
   document.getElementById("btn-next-page").addEventListener("click", () => changePage(currentPage + 1));
 
+  // Table row click (Top 50)
   document.getElementById("leaderboard-body").addEventListener("click", event => {
     const tr = event.target.closest("tr.top50-row");
     if (!tr) return;
@@ -339,6 +515,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (p && p.rank <= CONFIG.UNLOCKED_LIMIT) openPlayerModal(p);
   });
 
+  // Tournament item click
   document.getElementById("roadmap-list").addEventListener("click", event => {
     const item = event.target.closest(".roadmap-item");
     if (!item) return;
@@ -347,6 +524,49 @@ document.addEventListener("DOMContentLoaded", () => {
     if (t) openTournamentModal(t);
   });
 
+  // SVG Map Zone Click
+  document.getElementById("balkan-svg-map").addEventListener("click", event => {
+    const zone = event.target.closest(".map-zone");
+    if (!zone) return;
+    const rId = zone.getAttribute("data-region");
+    selectRegion(selectedRegionId === rId ? "ALL" : rId);
+  });
+
+  // Reset Region Filter Button
+  document.getElementById("btn-reset-region").addEventListener("click", () => selectRegion("ALL"));
+
+  // Regional Era Toggle (T8 vs T7 stats inside Regional Map)
+  document.querySelectorAll(".mini-era-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      regionStatsEra = btn.getAttribute("data-regera");
+      document.querySelectorAll(".mini-era-btn").forEach(b => {
+        b.classList.toggle("active", b.getAttribute("data-regera") === regionStatsEra);
+      });
+      renderRegions();
+    });
+  });
+
+  // Click on Subregion Row in Country Cards
+  document.getElementById("country-breakdown-grid").addEventListener("click", event => {
+    const row = event.target.closest("[data-region-select]");
+    if (!row) return;
+    const rId = row.getAttribute("data-region-select");
+    selectRegion(selectedRegionId === rId ? "ALL" : rId);
+    document.getElementById("regions-section").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  // Click on Player inside Regional Inspector to open their Top 50 Card
+  document.getElementById("region-players-list").addEventListener("click", event => {
+    const itemEl = event.target.closest(".region-player-item");
+    if (!itemEl) return;
+    const idx = parseInt(itemEl.getAttribute("data-ridx"), 10);
+    const entry = currentRegionalList[idx];
+    if (entry && entry.activeStats && entry.activeStats.rank <= CONFIG.UNLOCKED_LIMIT) {
+      openPlayerModal(entry.activeStats);
+    }
+  });
+
+  // Close Modals
   const playerModal = document.getElementById("player-modal");
   const tournamentModal = document.getElementById("tournament-modal");
 
@@ -360,9 +580,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === tournamentModal) tournamentModal.classList.remove("open");
   });
 
+  // Preload all 4 tabs
   fetchTabData("T8", false, () => {
     if (currentTab === "T8") renderCurrentView();
   });
   fetchTabData("T7");
   fetchTabData("TOURNAMENTS");
+  fetchTabData("REGIONS");
 });
