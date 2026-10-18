@@ -23,6 +23,12 @@ body.era-tournaments {
   --accent-bg: rgba(37, 99, 235, 0.15);
 }
 
+body.era-regions {
+  --accent: #0d9488;
+  --accent-light: #2dd4bf;
+  --accent-bg: rgba(13, 148, 136, 0.16);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -470,6 +476,203 @@ tr.locked-row { opacity: 0.55; background: var(--card-alt); cursor: not-allowed;
   margin-top: 6px;
 }
 
+/* REGIONAL MAP & INSPECTOR */
+.regions-layout {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.map-card, .region-inspector-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.map-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 10px;
+}
+
+.map-card-title { font-size: 18px; font-weight: 700; text-transform: uppercase; }
+.map-card-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+.svg-map-container {
+  background: var(--card-alt);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+#balkan-svg-map {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.map-zone { cursor: pointer; }
+.map-zone polygon {
+  fill: #171b29;
+  stroke: #2e364f;
+  stroke-width: 2;
+  transition: fill 0.2s, stroke 0.2s;
+}
+
+.map-zone:hover polygon {
+  fill: rgba(45, 212, 191, 0.28);
+  stroke: var(--accent-light);
+}
+
+.map-zone.active polygon {
+  fill: rgba(13, 148, 136, 0.45);
+  stroke: #fff;
+  stroke-width: 2.5;
+}
+
+.map-label {
+  fill: #d1d5db;
+  font-size: 11px;
+  font-weight: 700;
+  text-anchor: middle;
+  pointer-events: none;
+  font-family: 'Chakra Petch', sans-serif;
+  text-transform: uppercase;
+}
+
+.map-count {
+  fill: var(--accent-light);
+  font-size: 13px;
+  font-weight: 700;
+  text-anchor: middle;
+  pointer-events: none;
+  font-family: 'Chakra Petch', sans-serif;
+}
+
+.inspector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.inspector-title { font-size: 22px; font-weight: 700; text-transform: uppercase; margin-top: 6px; }
+
+.era-mini-switch {
+  display: inline-flex;
+  background: var(--card-alt);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.mini-era-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.mini-era-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.inspector-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.region-players-list {
+  max-height: 350px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+.region-player-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--card-alt);
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.region-player-item:hover {
+  border-color: var(--accent-light);
+  background: #151926;
+}
+
+.region-player-item.locked {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* COUNTRY & SUB-REGION GRID */
+.country-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.country-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.country-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.subregion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.subregion-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--card-alt);
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.subregion-row:hover, .subregion-row.active {
+  border-color: var(--accent-light);
+  background: rgba(13, 148, 136, 0.12);
+}
+
 /* MODALS */
 .modal-overlay {
   position: fixed;
@@ -562,6 +765,11 @@ tr.locked-row { opacity: 0.55; background: var(--card-alt); cursor: not-allowed;
 }
 
 .startgg-btn:hover { opacity: 0.92; }
+
+@media (max-width: 820px) {
+  .regions-layout { grid-template-columns: 1fr; }
+  .country-breakdown-grid { grid-template-columns: 1fr; }
+}
 
 @media (max-width: 640px) {
   .hide-sm { display: none; }
