@@ -56,7 +56,7 @@ const CONFIG = {
     }
   },
 
-  // 4 Countries & 10 Sub-Regions Configuration
+  // 5 Countries & 13 Sub-Regions Configuration
   REGIONS_CONFIG: [
     {
       countryCode: "hr",
@@ -87,9 +87,18 @@ const CONFIG = {
       countryCode: "rs",
       countryName: "Serbia",
       subRegions: [
-        { id: "RS-VO", name: "Vojvodina (North)", keywords: ["vojvodina", "north", "sever", "sjever", "novi sad", "subotica", "zrenjanin", "pancevo", "sombor"] },
-        { id: "RS-BG", name: "Belgrade & Central", keywords: ["belgrade", "beograd", "central", "sumadija", "kragujevac", "valjevo", "cacak", "kraljevo"] },
-        { id: "RS-SO", name: "Southern Serbia", keywords: ["south", "jug", "juzna", "southern", "nis", "leskovac", "vranje", "pirot", "krusevac"] }
+        { id: "RS-VO", name: "Vojvodina", keywords: ["vojvodina", "north", "sever", "sjever", "novi sad", "subotica", "zrenjanin", "pancevo", "sombor", "kikinda", "vrsac"] },
+        { id: "RS-BG", name: "Belgrade Region", keywords: ["belgrade", "beograd", "bg", "zemun", "novi beograd"] },
+        { id: "RS-WE", name: "Western Serbia", keywords: ["western", "west", "zapad", "zapadna", "sumadija", "uzice", "cacak", "kraljevo", "valjevo", "sabac", "loznica", "novi pazar", "kragujevac", "zlatibor"] },
+        { id: "RS-EA", name: "Eastern Serbia", keywords: ["eastern", "east", "istok", "istocna", "bor", "zajecar", "pozarevac", "smederevo", "negotin", "kladovo", "majdanpek", "jagodina", "cuprija", "paracin"] },
+        { id: "RS-SO", name: "Southern Serbia", keywords: ["southern", "south", "jug", "juzna", "nis", "leskovac", "vranje", "pirot", "prokuplje", "krusevac"] }
+      ]
+    },
+    {
+      countryCode: "me",
+      countryName: "Montenegro",
+      subRegions: [
+        { id: "ME-ALL", name: "Montenegro", keywords: ["montenegro", "crna gora", "podgorica", "niksic", "budva", "bar", "herceg novi", "kotor", "tivat", "cetinje", "bijelo polje", "all"] }
       ]
     }
   ],
@@ -115,7 +124,7 @@ const CONFIG = {
     },
     REGIONS: {
       badge: "Regional Distribution",
-      subtitle: 'Interactive breakdown of players across <strong class="text-white">Croatia, Slovenia, Bosnia & Herzegovina, and Serbia</strong> linked to Tekken 8 & Tekken 7 stats.',
+      subtitle: 'Interactive breakdown of players across <strong class="text-white">Croatia, Slovenia, Bosnia & Herzegovina, Serbia, and Montenegro</strong> linked to Tekken 8 & Tekken 7 stats.',
       searchPlaceholder: "Search player or region...",
       bodyClass: "era-regions"
     }
