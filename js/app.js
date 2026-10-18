@@ -3,6 +3,46 @@ let currentTab = "T8";
 let currentDisplayedList = [];
 let currentDisplayedTournaments = [];
 
+function escapeHTML(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function getSafeUrl(rawUrl) {
+  if (!rawUrl) return null;
+  const trimmed = rawUrl.trim();
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const parsed = new URL(withProtocol);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.href : null;
+  } catch {
+    return null;
+  }
+}
+
+function renderCountryFlagHtml(country, countryIso) {
+  if (!country) return "";
+  const safeCountry = escapeHTML(country);
+  if (countryIso) {
+    const safeIso = escapeHTML(countryIso.toLowerCase());
+    return `<span class="country-tag"><img src="https://flagcdn.com/${safeIso}.svg" alt="${safeCountry}" class="flag-icon" loading="lazy">${safeCountry}</span>`;
+  }
+  return `<span class="country-tag">${safeCountry}</span>`;
+}
+
+function renderTrendHtml(trend) {
+  if (!trend) return "";
+  const safeLabel = escapeHTML(trend.label);
+  if (trend.type === "up") return `<span class="trend-badge trend-up" title="Moved up ${trend.delta} spots">${safeLabel}</span>`;
+  if (trend.type === "down") return `<span class="trend-badge trend-down" title="Moved down ${trend.delta} spots">${safeLabel}</span>`;
+  if (trend.type === "new") return `<span class="trend-badge trend-new" title="New entry">${safeLabel}</span>`;
+  return `<span class="trend-same" title="No rank change">—</span>`;
+}
+
 function switchTab(tabKey) {
   if (currentTab === tabKey) return;
   currentTab = tabKey;
@@ -84,24 +124,40 @@ function renderTable() {
     const p = currentDisplayedList[i];
     const isUnlocked = p.rank <= CONFIG.UNLOCKED_LIMIT;
 
-    let rankHtml = `<span class="tekken-font font-bold text-muted">#${p.rank}</span>`;
+    const safeRank = escapeHTML(p.rank);
+    const safePlayer = escapeHTML(p.player);
+    const safeMain = escapeHTML(p.main);
+    const safeWins = escapeHTML(p.wins);
+    const safeMatches = escapeHTML(p.matches);
+    const safeWinRate = escapeHTML(p.winRate);
+    const safeElo = escapeHTML(p.elo);
+
+    let rankHtml = `<span class="tekken-font font-bold text-muted">#${safeRank}</span>`;
     if (p.rank === 1) rankHtml = `<span class="tekken-font rank-badge rank-1">🥇 #1</span>`;
     else if (p.rank === 2) rankHtml = `<span class="tekken-font rank-badge rank-2">🥈 #2</span>`;
     else if (p.rank === 3) rankHtml = `<span class="tekken-font rank-badge rank-3">🥉 #3</span>`;
 
+    const trendHtml = renderTrendHtml(p.trend);
+    const flagBadgeHtml = renderCountryFlagHtml(p.country, p.countryIso);
+
     html += `
       <tr class="${isUnlocked ? "top50-row" : "locked-row"}" data-idx="${i}">
-        <td class="text-center">${rankHtml}</td>
-        <td>
-          <div>
-            <strong class="text-white">${p.player}</strong>
-            ${p.country ? `<span class="country-tag">${p.country}</span>` : ""}
+        <td class="text-center">
+          <div class="rank-cell-wrap">
+            ${rankHtml}
+            ${trendHtml}
           </div>
-          ${p.main ? `<div class="char-sub">${p.main}</div>` : ""}
         </td>
-        <td class="hide-sm text-center">${p.wins}W / ${p.matches}M</td>
-        <td class="hide-sm text-center font-bold text-green">${p.winRate}</td>
-        <td class="tekken-font elo-cell">${p.elo}</td>
+        <td>
+          <div class="player-name-row">
+            <strong class="text-white">${safePlayer}</strong>
+            ${flagBadgeHtml}
+          </div>
+          ${safeMain ? `<div class="char-sub">${safeMain}</div>` : ""}
+        </td>
+        <td class="hide-sm text-center">${safeWins}W / ${safeMatches}M</td>
+        <td class="hide-sm text-center font-bold text-green">${safeWinRate}</td>
+        <td class="tekken-font elo-cell">${safeElo}</td>
         <td class="text-center">
           ${
             isUnlocked
@@ -151,16 +207,29 @@ function renderTournaments() {
     if (t.statusType === "completed") statusLabel = "Completed";
     else if (t.statusType === "live") statusLabel = "Live Now";
 
+    const safeStatusType = escapeHTML(t.statusType);
+    const safeTierClass = escapeHTML(t.tierClass);
+    const safeTierLabel = escapeHTML(t.tierLabel);
+    const safeTierMultiplier = escapeHTML(t.tierMultiplier);
+    const safeName = escapeHTML(t.name);
+    const safeDate = escapeHTML(t.date);
+    const safeTime = escapeHTML(t.time);
+    const safeLocation = escapeHTML(t.location);
+
     html += `
       <div class="roadmap-item" data-tidx="${i}">
-        <div class="roadmap-dot ${t.statusType}"></div>
+        <div class="roadmap-dot ${safeStatusType}"></div>
         <div>
-          <span class="t-status ${t.statusType}">${statusLabel}</span>
-          <h3 class="tekken-font t-title">${t.name}</h3>
+          <div class="t-badge-group">
+            <span class="t-status ${safeStatusType}">${statusLabel}</span>
+            <span class="tier-badge ${safeTierClass}">${safeTierLabel}</span>
+            <span class="tier-weight-pill tekken-font">⚖️ ${safeTierMultiplier}</span>
+          </div>
+          <h3 class="tekken-font t-title">${safeName}</h3>
           <div class="t-meta">
-            <span>📅 ${t.date}</span>
-            <span>⏰ ${t.time}</span>
-            <span>📍 ${t.location}</span>
+            <span>📅 ${safeDate}</span>
+            <span>⏰ ${safeTime}</span>
+            <span>📍 ${safeLocation}</span>
           </div>
         </div>
         <div>
@@ -175,11 +244,28 @@ function renderTournaments() {
 function openPlayerModal(p) {
   document.getElementById("modal-rank").innerText = `#${p.rank}`;
   document.getElementById("modal-player").innerText = p.player;
-  document.getElementById("modal-country").innerText = p.country ? `📍 ${p.country}` : "";
+  document.getElementById("modal-trend").innerHTML = renderTrendHtml(p.trend);
+
+  const modalCountryEl = document.getElementById("modal-country");
+  const modalCountryDetailEl = document.getElementById("modal-country-detail");
+
+  if (p.country) {
+    const safeCountry = escapeHTML(p.country);
+    if (p.countryIso) {
+      const safeIso = escapeHTML(p.countryIso.toLowerCase());
+      const flagImg = `<img src="https://flagcdn.com/${safeIso}.svg" alt="${safeCountry}" class="flag-icon">`;
+      modalCountryEl.innerHTML = `${flagImg} ${safeCountry}`;
+      modalCountryDetailEl.innerHTML = `${flagImg} ${safeCountry}`;
+    } else {
+      modalCountryEl.innerText = `📍 ${p.country}`;
+      modalCountryDetailEl.innerText = p.country;
+    }
+  } else {
+    modalCountryEl.innerText = "";
+    modalCountryDetailEl.innerText = "Not specified";
+  }
 
   document.getElementById("modal-main-detail").innerText = p.main || "Not specified";
-  document.getElementById("modal-country-detail").innerText = p.country || "Not specified";
-
   document.getElementById("modal-elo").innerText = p.elo;
   document.getElementById("modal-matches").innerText = `${p.wins} / ${p.matches}`;
 
@@ -201,6 +287,11 @@ function openTournamentModal(t) {
       ? "Live Now"
       : "Upcoming";
 
+  const tierBadgeEl = document.getElementById("t-modal-tier-badge");
+  tierBadgeEl.className = `tier-badge ${t.tierClass}`;
+  tierBadgeEl.innerText = t.tierLabel;
+
+  document.getElementById("t-modal-weight").innerText = t.tierMultiplier;
   document.getElementById("t-modal-name").innerText = t.name;
   document.getElementById("t-modal-date").innerText = t.date;
   document.getElementById("t-modal-time").innerText = t.time;
@@ -215,9 +306,10 @@ function openTournamentModal(t) {
   }
 
   const linkBtn = document.getElementById("t-modal-link");
-  if (t.link) {
+  const safeHref = getSafeUrl(t.link);
+  if (safeHref) {
     linkBtn.style.display = "block";
-    linkBtn.href = t.link.startsWith("http") ? t.link : `https://${t.link}`;
+    linkBtn.href = safeHref;
   } else {
     linkBtn.style.display = "none";
   }
@@ -225,25 +317,20 @@ function openTournamentModal(t) {
   document.getElementById("tournament-modal").classList.add("open");
 }
 
-// Initialize Event Listeners & Preload Data
 document.addEventListener("DOMContentLoaded", () => {
-  // Tab buttons
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.addEventListener("click", () => switchTab(btn.getAttribute("data-tab")));
   });
 
-  // Search & Refresh
   document.getElementById("search-input").addEventListener("input", () => {
     currentPage = 1;
     renderCurrentView();
   });
   document.getElementById("btn-refresh").addEventListener("click", forceRefresh);
 
-  // Pagination
   document.getElementById("btn-prev-page").addEventListener("click", () => changePage(currentPage - 1));
   document.getElementById("btn-next-page").addEventListener("click", () => changePage(currentPage + 1));
 
-  // Table row click (Top 50)
   document.getElementById("leaderboard-body").addEventListener("click", event => {
     const tr = event.target.closest("tr.top50-row");
     if (!tr) return;
@@ -252,7 +339,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (p && p.rank <= CONFIG.UNLOCKED_LIMIT) openPlayerModal(p);
   });
 
-  // Tournament item click
   document.getElementById("roadmap-list").addEventListener("click", event => {
     const item = event.target.closest(".roadmap-item");
     if (!item) return;
@@ -261,7 +347,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (t) openTournamentModal(t);
   });
 
-  // Close Modals
   const playerModal = document.getElementById("player-modal");
   const tournamentModal = document.getElementById("tournament-modal");
 
@@ -275,7 +360,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === tournamentModal) tournamentModal.classList.remove("open");
   });
 
-  // Preload all 3 tabs
   fetchTabData("T8", false, () => {
     if (currentTab === "T8") renderCurrentView();
   });
