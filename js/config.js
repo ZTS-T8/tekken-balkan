@@ -41,18 +41,18 @@ const CONFIG = {
   // Tournament Tier Classification & Points Weighting
   TOURNAMENT_TIERS: {
     S: {
-      label: "🏆 S-Tier Major",
-      multiplier: "2.0× ELO",
+      label: "🏆 Major",
+      //multiplier: "2.0× ELO",
       cssClass: "tier-s"
     },
     A: {
-      label: "⚔️ A-Tier Regional",
-      multiplier: "1.5× ELO",
+      label: "⚔️ Regional",
+      //multiplier: "1.5× ELO",
       cssClass: "tier-a"
     },
     B: {
-      label: "🎮 B-Tier Community",
-      multiplier: "1.0× ELO",
+      label: "🎮 Local",
+      //multiplier: "1.0× ELO",
       cssClass: "tier-b"
     }
   },
