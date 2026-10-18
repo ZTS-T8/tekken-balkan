@@ -24,6 +24,12 @@ function getSafeUrl(rawUrl) {
   }
 }
 
+function trackEvent(eventName, eventData) {
+  if (typeof window.umami !== "undefined" && typeof window.umami.track === "function") {
+    window.umami.track(eventName, eventData);
+  }
+}
+
 function renderCountryFlagHtml(country, countryIso) {
   if (!country) return "";
   const safeCountry = escapeHTML(country);
@@ -48,6 +54,8 @@ function switchTab(tabKey) {
   currentTab = tabKey;
   currentPage = 1;
 
+  trackEvent("Switch Tab", { tab: tabKey });
+  
   const meta = CONFIG.TAB_META[tabKey];
   document.body.className = meta.bodyClass;
 
@@ -342,6 +350,8 @@ function renderEloChart(history) {
 }
 
 function openPlayerModal(p) {
+  trackEvent("View Player Card", { player: p.player, era: currentTab, country: p.country || "Unknown" });
+  
   document.getElementById("modal-rank").innerText = `#${p.rank}`;
   document.getElementById("modal-player").innerText = p.player;
   document.getElementById("modal-trend").innerHTML = renderTrendHtml(p.trend);
@@ -391,6 +401,8 @@ function openPlayerModal(p) {
 }
 
 function openTournamentModal(t) {
+  trackEvent("View Tournament", { tournament: t.name, tier: t.tierLabel });
+  
   const statusEl = document.getElementById("t-modal-status");
   statusEl.className = `t-status ${t.statusType}`;
   statusEl.innerText =
