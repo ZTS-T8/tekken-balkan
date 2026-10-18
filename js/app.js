@@ -239,6 +239,108 @@ function renderTournaments() {
   container.innerHTML = html;
 }
 
+// Draws the SVG ELO Progression Graph (Y = ELO, X = Event Number)
+function renderEloChart(history) {
+  const svg = document.getElementById("elo-chart-svg");
+  const tooltip = document.getElementById("chart-tooltip");
+  tooltip.classList.add("hidden");
+
+  const n = history.length;
+  const minVal = Math.min(...history);
+  const maxVal = Math.max(...history);
+  const netDiff = history[n - 1] - history[0];
+
+  // Update summary pills
+  document.getElementById("chart-peak-elo").innerText = `Peak: ${Math.round(maxVal * 10) / 10}`;
+  const netEl = document.getElementById("chart-net-change");
+  const sign = netDiff >= 0 ? "+" : "";
+  netEl.innerText = `${sign}${Math.round(netDiff * 10) / 10} ELO`;
+  netEl.style.color = netDiff >= 0 ? "var(--green)" : "#fb7185";
+
+  // SVG dimensions & padding
+  const width = 430;
+  const height = 230;
+  const padLeft = 48;
+  const padRight = 16;
+  const padTop = 16;
+  const padBottom = 36;
+  const plotW = width - padLeft - padRight;
+  const plotH = height - padTop - padBottom;
+
+  // Calculate nice Y-axis bounds
+  const rawRange = maxVal - minVal;
+  const buffer = rawRange === 0 ? 25 : rawRange * 0.12;
+  const yMin = Math.floor((minVal - buffer) / 10) * 10;
+  const yMax = Math.ceil((maxVal + buffer) / 10) * 10;
+  const ySpan = yMax - yMin || 1;
+
+  const getX = idx => (n === 1 ? padLeft + plotW / 2 : padLeft + (idx / (n - 1)) * plotW);
+  const getY = val => padTop + plotH - ((val - yMin) / ySpan) * plotH;
+
+  let svgHtml = `
+    <defs>
+      <linearGradient id="eloAreaGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.42"/>
+        <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.0"/>
+      </linearGradient>
+    </defs>
+  `;
+
+  // Y-Axis Gridlines & Labels (4 steps)
+  const ySteps = 4;
+  for (let s = 0; s <= ySteps; s++) {
+    const val = yMin + (s / ySteps) * ySpan;
+    const y = getY(val).toFixed(1);
+    svgHtml += `
+      <line x1="${padLeft}" y1="${y}" x2="${width - padRight}" y2="${y}" class="chart-grid-line" />
+      <text x="${padLeft - 7}" y="${Number(y) + 3}" text-anchor="end" class="chart-axis-label">${Math.round(val)}</text>
+    `;
+  }
+
+  // X-Axis Ticks & Event Number Labels
+  const maxTicks = Math.min(n, 6);
+  const tickIndices = new Set([0, n - 1]);
+  for (let t = 1; t < maxTicks - 1; t++) {
+    tickIndices.add(Math.round((t / (maxTicks - 1)) * (n - 1)));
+  }
+
+  Array.from(tickIndices)
+    .sort((a, b) => a - b)
+    .forEach(idx => {
+      const x = getX(idx).toFixed(1);
+      svgHtml += `
+        <line x1="${x}" y1="${padTop + plotH}" x2="${x}" y2="${padTop + plotH + 4}" class="chart-axis-line" />
+        <text x="${x}" y="${padTop + plotH + 15}" text-anchor="middle" class="chart-axis-label">#${idx + 1}</text>
+      `;
+    });
+
+  // Axis Titles
+  svgHtml += `
+    <line x1="${padLeft}" y1="${padTop}" x2="${padLeft}" y2="${padTop + plotH}" class="chart-axis-line" />
+    <line x1="${padLeft}" y1="${padTop + plotH}" x2="${width - padRight}" y2="${padTop + plotH}" class="chart-axis-line" />
+    <text x="${padLeft + plotW / 2}" y="${height - 4}" text-anchor="middle" class="chart-axis-title">Event Number</text>
+    <text x="12" y="${padTop + plotH / 2}" text-anchor="middle" transform="rotate(-90 12 ${padTop + plotH / 2})" class="chart-axis-title">ELO</text>
+  `;
+
+  // Line & Area Polygon
+  const coords = history.map((v, i) => `${getX(i).toFixed(1)},${getY(v).toFixed(1)}`);
+  if (n > 1) {
+    const areaPoints = `${getX(0).toFixed(1)},${(padTop + plotH).toFixed(1)} ${coords.join(" ")} ${getX(n - 1).toFixed(1)},${(padTop + plotH).toFixed(1)}`;
+    svgHtml += `<polygon points="${areaPoints}" fill="url(#eloAreaGrad)" />`;
+    svgHtml += `<polyline points="${coords.join(" ")}" class="chart-line" />`;
+  }
+
+  // Data Points (with hover data attributes)
+  const pointRadius = n > 20 ? 3 : 4;
+  history.forEach((v, i) => {
+    const cx = getX(i).toFixed(1);
+    const cy = getY(v).toFixed(1);
+    svgHtml += `<circle cx="${cx}" cy="${cy}" r="${pointRadius}" class="chart-point" data-event="${i + 1}" data-elo="${v}" />`;
+  });
+
+  svg.innerHTML = svgHtml;
+}
+
 function openPlayerModal(p) {
   document.getElementById("modal-rank").innerText = `#${p.rank}`;
   document.getElementById("modal-player").innerText = p.player;
@@ -271,6 +373,19 @@ function openPlayerModal(p) {
   document.getElementById("modal-winrate").innerText = `${numericWinRate}%`;
   document.getElementById("modal-winrate-text").innerText = `${numericWinRate}%`;
   document.getElementById("modal-winrate-bar").style.width = `${Math.min(numericWinRate, 100)}%`;
+
+  // Show or hide the ELO History chart column
+  const modalBox = document.getElementById("player-modal-box");
+  const chartCol = document.getElementById("elo-chart-col");
+
+  if (p.eloHistory && p.eloHistory.length > 0) {
+    modalBox.classList.add("has-chart");
+    chartCol.classList.remove("hidden");
+    renderEloChart(p.eloHistory);
+  } else {
+    modalBox.classList.remove("has-chart");
+    chartCol.classList.add("hidden");
+  }
 
   document.getElementById("player-modal").classList.add("open");
 }
@@ -342,6 +457,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const idx = parseInt(item.getAttribute("data-tidx"), 10);
     const t = currentDisplayedTournaments[idx];
     if (t) openTournamentModal(t);
+  });
+
+  // Hover tooltip on ELO chart data points
+  const chartSvg = document.getElementById("elo-chart-svg");
+  const chartTooltip = document.getElementById("chart-tooltip");
+  chartSvg.addEventListener("mouseover", event => {
+    const pt = event.target.closest(".chart-point");
+    if (!pt) return;
+    const evNum = pt.getAttribute("data-event");
+    const eloVal = pt.getAttribute("data-elo");
+    chartTooltip.innerText = `Event #${evNum}: ${eloVal} ELO`;
+    chartTooltip.classList.remove("hidden");
+  });
+  chartSvg.addEventListener("mouseout", event => {
+    if (event.target.closest(".chart-point")) {
+      chartTooltip.classList.add("hidden");
+    }
   });
 
   const playerModal = document.getElementById("player-modal");
