@@ -11,8 +11,14 @@
   <!-- Stylesheet -->
   <link rel="stylesheet" href="css/styles.css">
 
-  <!-- External Libraries & App Scripts (loaded in order with defer) -->
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- External Libraries & App Scripts -->
+  <script 
+    defer 
+    src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" 
+    integrity="sha512-dfX5uYVXzyU8+KHqj8bjo7UkOdg18PaOtpa48djpNbZHwExddghZ+ZmzWT06R5v6NSk3ZUfsH6FNEDepLx9hPQ==" 
+    crossorigin="anonymous" 
+    referrerpolicy="no-referrer">
+  </script>
   <script defer src="js/config.js"></script>
   <script defer src="js/data.js"></script>
   <script defer src="js/app.js"></script>
@@ -84,6 +90,7 @@
         <div>
           <div class="modal-badge-row">
             <span id="modal-rank" class="tekken-font modal-rank-pill">#1</span>
+            <span id="modal-trend" class="modal-trend-holder"></span>
             <span id="modal-country" class="modal-country-label"></span>
           </div>
           <h2 id="modal-player" class="tekken-font modal-title-lg">Player</h2>
@@ -124,7 +131,7 @@
 
         <div class="info-row">
           <span class="info-label">Country:</span>
-          <span id="modal-country-detail" class="font-bold">Not specified</span>
+          <span id="modal-country-detail" class="font-bold country-detail-flex">Not specified</span>
         </div>
       </div>
     </div>
@@ -135,13 +142,21 @@
     <div class="modal-box">
       <div class="modal-header">
         <div>
-          <span id="t-modal-status" class="t-status upcoming">Upcoming</span>
+          <div class="t-badge-group">
+            <span id="t-modal-status" class="t-status upcoming">Upcoming</span>
+            <span id="t-modal-tier-badge" class="tier-badge tier-b">🎮 B-Tier</span>
+          </div>
           <h2 id="t-modal-name" class="tekken-font modal-title-md">Tournament Name</h2>
         </div>
         <button id="close-tournament-modal" class="close-btn">&times;</button>
       </div>
 
       <div class="modal-body">
+        <div class="info-row">
+          <span class="info-label">⚖️ ELO Weighting:</span>
+          <span id="t-modal-weight" class="tekken-font font-bold text-white">1.0× ELO</span>
+        </div>
+
         <div class="info-row">
           <span class="info-label">📅 Date:</span>
           <span id="t-modal-date" class="font-bold">TBA</span>
