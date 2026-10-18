@@ -491,6 +491,11 @@ tr.locked-row { opacity: 0.55; background: var(--card-alt); cursor: not-allowed;
   max-width: 480px;
   width: 100%;
   overflow: hidden;
+  transition: max-width 0.2s ease;
+}
+
+.modal-box.has-chart {
+  max-width: 880px;
 }
 
 .modal-header {
@@ -519,6 +524,137 @@ tr.locked-row { opacity: 0.55; background: var(--card-alt); cursor: not-allowed;
 
 .close-btn:hover { color: #fff; }
 .modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+
+/* SIDE-BY-SIDE PLAYER MODAL GRID */
+.player-modal-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.modal-box.has-chart .player-modal-grid {
+  grid-template-columns: 1fr 1.25fr;
+}
+
+.player-info-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.elo-chart-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-left: 1px solid var(--border);
+  padding-left: 20px;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chart-summary-pills {
+  display: flex;
+  gap: 6px;
+}
+
+.chart-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--card-alt);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.chart-box {
+  position: relative;
+  background: var(--card-alt);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 10px 8px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#elo-chart-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+.chart-grid-line {
+  stroke: #1f2433;
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.chart-axis-line {
+  stroke: #2e364f;
+  stroke-width: 1.2;
+}
+
+.chart-axis-label {
+  fill: var(--muted);
+  font-size: 10px;
+  font-family: 'Chakra Petch', sans-serif;
+  font-weight: 600;
+}
+
+.chart-axis-title {
+  fill: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.chart-line {
+  fill: none;
+  stroke: var(--accent-light);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chart-point {
+  fill: var(--bg);
+  stroke: var(--accent-light);
+  stroke-width: 2;
+  cursor: pointer;
+  transition: r 0.15s ease, fill 0.15s ease;
+}
+
+.chart-point:hover {
+  r: 5.5px;
+  fill: #fff;
+}
+
+.chart-tooltip {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: rgba(17, 19, 28, 0.95);
+  border: 1px solid var(--accent);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  pointer-events: none;
+  z-index: 5;
+}
+
 .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center; }
 .stat-box { background: var(--card-alt); border: 1px solid var(--border); padding: 12px 8px; border-radius: 10px; }
 .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; }
@@ -562,6 +698,18 @@ tr.locked-row { opacity: 0.55; background: var(--card-alt); cursor: not-allowed;
 }
 
 .startgg-btn:hover { opacity: 0.92; }
+
+@media (max-width: 760px) {
+  .modal-box.has-chart .player-modal-grid {
+    grid-template-columns: 1fr;
+  }
+  .elo-chart-col {
+    border-left: none;
+    border-top: 1px solid var(--border);
+    padding-left: 0;
+    padding-top: 16px;
+  }
+}
 
 @media (max-width: 640px) {
   .hide-sm { display: none; }
