@@ -37,10 +37,10 @@
       </p>
 
       <div class="tabs">
-        <button id="btn-t8" data-tab="T8" class="tab-btn tekken-font active">🔥 Tekken 8</button>
-        <button id="btn-t7" data-tab="T7" class="tab-btn tekken-font">🏆 Tekken 7 Legacy</button>
-        <button id="btn-h2h" data-tab="H2H" class="tab-btn tekken-font">⚔️ Head-to-Head</button>
-        <button id="btn-tournaments" data-tab="TOURNAMENTS" class="tab-btn tekken-font">📅 Tournaments</button>
+        <button id="btn-t8" data-tab="T8" type="button" class="tab-btn tekken-font active">🔥 Tekken 8</button>
+        <button id="btn-t7" data-tab="T7" type="button" class="tab-btn tekken-font">🏆 Tekken 7 Legacy</button>
+        <button id="btn-h2h" data-tab="H2H" type="button" class="tab-btn tekken-font">⚔️ Head-to-Head</button>
+        <button id="btn-tournaments" data-tab="TOURNAMENTS" type="button" class="tab-btn tekken-font">📅 Tournaments</button>
       </div>
     </div>
   </header>
@@ -49,7 +49,7 @@
     <div id="main-toolbar" class="toolbar">
       <div class="search-box">
         <input type="text" id="search-input" placeholder="Search player..." class="search-input">
-        <button id="btn-refresh" class="refresh-btn" title="Fetch latest updates from Google Sheets">↻ Refresh</button>
+        <button id="btn-refresh" type="button" class="refresh-btn" title="Fetch latest updates from Google Sheets">↻ Refresh</button>
       </div>
     </div>
 
@@ -74,9 +74,9 @@
       <div class="pagination">
         <div id="pagination-info" class="pagination-info">Loading...</div>
         <div class="pagination-controls">
-          <button id="btn-prev-page" class="page-btn">← Prev</button>
+          <button id="btn-prev-page" type="button" class="page-btn">← Prev</button>
           <span id="page-indicator" class="page-indicator tekken-font">1 / 1</span>
-          <button id="btn-next-page" class="page-btn">Next →</button>
+          <button id="btn-next-page" type="button" class="page-btn">Next →</button>
         </div>
       </div>
     </div>
@@ -87,29 +87,31 @@
         <div class="h2h-top-bar">
           <div>
             <h2 class="tekken-font h2h-section-title">⚔️ Player Versus Comparator</h2>
-            <p class="h2h-section-sub">Compare direct tournament set records between any two players</p>
+            <p class="h2h-section-sub">Select any two players below to compare direct tournament set records</p>
           </div>
           <div class="era-mini-switch">
-            <button data-h2hera="T8" class="mini-era-btn active">🔥 Tekken 8 H2H</button>
-            <button data-h2hera="T7" class="mini-era-btn">🏆 Tekken 7 H2H</button>
+            <button type="button" data-h2hera="T8" class="mini-era-btn active">🔥 Tekken 8 H2H</button>
+            <button type="button" data-h2hera="T7" class="mini-era-btn">🏆 Tekken 7 H2H</button>
           </div>
         </div>
 
         <div class="h2h-selectors-grid">
           <div class="h2h-select-box">
-            <label class="info-label">Player 1</label>
-            <input type="text" id="h2h-p1-input" list="h2h-players-datalist" placeholder="Type or select Player 1..." class="search-input">
+            <label for="h2h-p1-select" class="info-label">Player 1</label>
+            <select id="h2h-p1-select" class="search-input h2h-select">
+              <option value="">— Select Player 1 —</option>
+            </select>
           </div>
 
-          <div class="h2h-vs-circle tekken-font">VS</div>
+          <button id="btn-h2h-swap" type="button" class="h2h-vs-circle tekken-font" title="Swap Player 1 & Player 2">⇄</button>
 
           <div class="h2h-select-box">
-            <label class="info-label">Player 2</label>
-            <input type="text" id="h2h-p2-input" list="h2h-players-datalist" placeholder="Type or select Player 2..." class="search-input">
+            <label for="h2h-p2-select" class="info-label">Player 2</label>
+            <select id="h2h-p2-select" class="search-input h2h-select">
+              <option value="">— Select Player 2 —</option>
+            </select>
           </div>
         </div>
-
-        <datalist id="h2h-players-datalist"></datalist>
 
         <div id="h2h-result-container" class="h2h-result-container"></div>
       </div>
@@ -133,7 +135,7 @@
           </div>
           <h2 id="modal-player" class="tekken-font modal-title-lg">Player</h2>
         </div>
-        <button id="close-player-modal" class="close-btn">&times;</button>
+        <button id="close-player-modal" type="button" class="close-btn">&times;</button>
       </div>
 
       <div class="modal-body">
@@ -196,7 +198,7 @@
         <div id="modal-h2h-section" class="modal-h2h-section hidden">
           <div class="modal-h2h-header">
             <div>
-              <span class="info-label">⚔️ Head-to-Head Matchups</span>
+              <span class="info-label">⚔️ Head-to-Head Matchups (Click any opponent to compare)</span>
               <div id="modal-h2h-badges" class="modal-h2h-badges"></div>
             </div>
             <input type="text" id="modal-h2h-filter" placeholder="Filter opponent..." class="modal-h2h-search">
@@ -218,7 +220,7 @@
           </div>
           <h2 id="t-modal-name" class="tekken-font modal-title-md">Tournament Name</h2>
         </div>
-        <button id="close-tournament-modal" class="close-btn">&times;</button>
+        <button id="close-tournament-modal" type="button" class="close-btn">&times;</button>
       </div>
 
       <div class="modal-body">
