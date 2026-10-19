@@ -1,14 +1,15 @@
 const DATA_STORE = {
   T8: null,
   T7: null,
-  TOURNAMENTS: null
+  TOURNAMENTS: null,
+  H2H_T8: null,
+  H2H_T7: null
 };
 
 function isValidCsvUrl(url) {
   return typeof url === "string" && url.length > 65 && url.includes("output=csv");
 }
 
-// Helper: Reads a column from a CSV row regardless of spaces, \r, or capitalization
 function getCol(row, possibleNames) {
   if (!row) return "";
   const rowKeys = Object.keys(row);
@@ -24,7 +25,6 @@ function getCol(row, possibleNames) {
   return "";
 }
 
-// Helper: Resolves country text (even with diacritics or slashes) to a 2-letter ISO code
 function resolveCountryIso(rawCountry) {
   if (!rawCountry) return "";
 
@@ -88,7 +88,6 @@ function parsePlayerTrend(row, currentRank) {
   return null;
 }
 
-// Helper: Parses "[1500, 1520.6, 1540.0, ...]" into an array of numbers
 function parseEloHistory(row) {
   const rawHistory = getCol(row, ["Elo History", "ELO History", "Elo_History", "History"]);
   if (!rawHistory) return [];
@@ -226,6 +225,108 @@ function normalizeTournamentRows(rawRows) {
     });
   }
   return clean;
+}
+
+// Parses a 2D Row-vs-Column H2H Matrix ("6-1", "-", or blank diagonal)
+function parseH2HMatrix(matrixRows) {
+  const recordsByPlayer = {};
+  const playerNamesMap = {};
+
+  if (!matrixRows || matrixRows.length < 2) {
+    return { recordsByPlayer, players: [] };
+  }
+
+  const headerRow = matrixRows[0];
+  const colPlayers = [];
+  for (let c = 1; c < headerRow.length; c++) {
+    const colName = String(headerRow[c] || "").replace(/[\r\n]+/g, "").trim();
+    colPlayers[c] = colName;
+    if (colName) {
+      playerNamesMap[colName.toLowerCase()] = colName;
+    }
+  }
+
+  const addRecord = (p1, p2, w, l) => {
+    const k1 = p1.toLowerCase();
+    const k2 = p2.toLowerCase();
+    if (k1 === k2) return;
+
+    if (!recordsByPlayer[k1]) recordsByPlayer[k1] = {};
+    if (!recordsByPlayer[k1][k2]) {
+      recordsByPlayer[k1][k2] = {
+        opponent: playerNamesMap[k2] || p2,
+        wins: w,
+        losses: l,
+        total: w + l,
+        winRate: w + l > 0 ? Math.round((w / (w + l)) * 100) : 0
+      };
+    }
+  };
+
+  for (let r = 1; r < matrixRows.length; r++) {
+    const row = matrixRows[r];
+    if (!row || row.length === 0) continue;
+
+    const rowPlayer = String(row[0] || "").replace(/[\r\n]+/g, "").trim();
+    if (!rowPlayer) continue;
+    playerNamesMap[rowPlayer.toLowerCase()] = rowPlayer;
+
+    for (let c = 1; c < row.length; c++) {
+      const colPlayer = colPlayers[c];
+      if (!colPlayer) continue;
+
+      const cell = String(row[c] || "").replace(/[\r\n]+/g, "").trim();
+      if (!cell || cell === "-") continue;
+
+      // Match "6-1", "6 - 1", "6:1", or "6–1"
+      const match = cell.match(/^(\d+)\s*[-–:]\s*(\d+)$/);
+      if (!match) continue;
+
+      const rowWins = parseInt(match[1], 10);
+      const colWins = parseInt(match[2], 10);
+      if (isNaN(rowWins) || isNaN(colWins) || (rowWins === 0 && colWins === 0)) continue;
+
+      addRecord(rowPlayer, colPlayer, rowWins, colWins);
+      // Also ensure reverse direction is stored in case only half of the matrix is filled
+      addRecord(colPlayer, rowPlayer, colWins, rowWins);
+    }
+  }
+
+  return {
+    recordsByPlayer,
+    players: Object.values(playerNamesMap).sort((a, b) => a.localeCompare(b))
+  };
+}
+
+function fetchH2HData(eraKey, force = false, onComplete) {
+  const storeKey = `H2H_${eraKey}`;
+  if (DATA_STORE[storeKey] && !force) {
+    if (onComplete) onComplete(DATA_STORE[storeKey]);
+    return;
+  }
+
+  const baseUrl = CONFIG.SHEET_URLS[storeKey];
+  if (!isValidCsvUrl(baseUrl)) {
+    DATA_STORE[storeKey] = { recordsByPlayer: {}, players: [] };
+    if (onComplete) onComplete(DATA_STORE[storeKey]);
+    return;
+  }
+
+  const fetchUrl = force ? `${baseUrl}&_cb=${Date.now()}` : baseUrl;
+
+  Papa.parse(fetchUrl, {
+    download: true,
+    header: false, // 2D array mode for Row-vs-Column matrix
+    skipEmptyLines: "greedy",
+    complete: function (results) {
+      DATA_STORE[storeKey] = parseH2HMatrix(results.data || []);
+      if (onComplete) onComplete(DATA_STORE[storeKey]);
+    },
+    error: function () {
+      DATA_STORE[storeKey] = { recordsByPlayer: {}, players: [] };
+      if (onComplete) onComplete(DATA_STORE[storeKey]);
+    }
+  });
 }
 
 function fetchTabData(tabKey, force = false, onComplete) {
