@@ -33,19 +33,20 @@
       <span id="era-badge" class="era-badge">Current Season</span>
       <h1 class="tekken-font">Tekken Balkan <span id="title-accent">ELO</span></h1>
       <p id="header-subtitle" class="subtitle">
-        Official Tekken Balkan community leaderboard. Click on any <strong class="text-white">Top 50</strong> player for detailed stats.
+        Official Tekken Balkan community leaderboard. Click on any <strong class="text-white">Top 200</strong> player for detailed stats & H2H.
       </p>
 
       <div class="tabs">
         <button id="btn-t8" data-tab="T8" class="tab-btn tekken-font active">🔥 Tekken 8</button>
         <button id="btn-t7" data-tab="T7" class="tab-btn tekken-font">🏆 Tekken 7 Legacy</button>
+        <button id="btn-h2h" data-tab="H2H" class="tab-btn tekken-font">⚔️ Head-to-Head</button>
         <button id="btn-tournaments" data-tab="TOURNAMENTS" class="tab-btn tekken-font">📅 Tournaments</button>
       </div>
     </div>
   </header>
 
   <main class="container">
-    <div class="toolbar">
+    <div id="main-toolbar" class="toolbar">
       <div class="search-box">
         <input type="text" id="search-input" placeholder="Search player..." class="search-input">
         <button id="btn-refresh" class="refresh-btn" title="Fetch latest updates from Google Sheets">↻ Refresh</button>
@@ -80,13 +81,47 @@
       </div>
     </div>
 
-    <!-- SECTION 2: TOURNAMENT ROADMAP -->
+    <!-- SECTION 2: HEAD-TO-HEAD (VS) COMPARATOR -->
+    <div id="h2h-section" class="hidden">
+      <div class="h2h-card">
+        <div class="h2h-top-bar">
+          <div>
+            <h2 class="tekken-font h2h-section-title">⚔️ Player Versus Comparator</h2>
+            <p class="h2h-section-sub">Compare direct tournament set records between any two players</p>
+          </div>
+          <div class="era-mini-switch">
+            <button data-h2hera="T8" class="mini-era-btn active">🔥 Tekken 8 H2H</button>
+            <button data-h2hera="T7" class="mini-era-btn">🏆 Tekken 7 H2H</button>
+          </div>
+        </div>
+
+        <div class="h2h-selectors-grid">
+          <div class="h2h-select-box">
+            <label class="info-label">Player 1</label>
+            <input type="text" id="h2h-p1-input" list="h2h-players-datalist" placeholder="Type or select Player 1..." class="search-input">
+          </div>
+
+          <div class="h2h-vs-circle tekken-font">VS</div>
+
+          <div class="h2h-select-box">
+            <label class="info-label">Player 2</label>
+            <input type="text" id="h2h-p2-input" list="h2h-players-datalist" placeholder="Type or select Player 2..." class="search-input">
+          </div>
+        </div>
+
+        <datalist id="h2h-players-datalist"></datalist>
+
+        <div id="h2h-result-container" class="h2h-result-container"></div>
+      </div>
+    </div>
+
+    <!-- SECTION 3: TOURNAMENT ROADMAP -->
     <div id="tournaments-section" class="hidden">
       <div id="roadmap-list" class="roadmap-wrapper"></div>
     </div>
   </main>
 
-  <!-- MODAL FOR TOP 50 PLAYERS -->
+  <!-- MODAL FOR PLAYERS -->
   <div id="player-modal" class="modal-overlay">
     <div id="player-modal-box" class="modal-box">
       <div class="modal-header">
@@ -101,58 +136,72 @@
         <button id="close-player-modal" class="close-btn">&times;</button>
       </div>
 
-      <div class="modal-body player-modal-grid">
-        <!-- LEFT COLUMN: REGULAR PLAYER INFO -->
-        <div class="player-info-col">
-          <div class="stats-grid">
-            <div class="stat-box">
-              <div class="stat-label">ELO Rating</div>
-              <div id="modal-elo" class="stat-val tekken-font">0</div>
+      <div class="modal-body">
+        <div class="player-modal-grid">
+          <!-- LEFT COLUMN: REGULAR PLAYER INFO -->
+          <div class="player-info-col">
+            <div class="stats-grid">
+              <div class="stat-box">
+                <div class="stat-label">ELO Rating</div>
+                <div id="modal-elo" class="stat-val tekken-font">0</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">Wins / Matches</div>
+                <div id="modal-matches" class="stat-val tekken-font">0 / 0</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">Win Rate</div>
+                <div id="modal-winrate" class="stat-val tekken-font text-green">0%</div>
+              </div>
             </div>
-            <div class="stat-box">
-              <div class="stat-label">Wins / Matches</div>
-              <div id="modal-matches" class="stat-val tekken-font">0 / 0</div>
+
+            <div>
+              <div class="winrate-header">
+                <span class="info-label">Match Win Rate</span>
+                <span id="modal-winrate-text" class="text-green font-bold">0%</span>
+              </div>
+              <div class="bar-bg">
+                <div id="modal-winrate-bar" class="bar-fill"></div>
+              </div>
             </div>
-            <div class="stat-box">
-              <div class="stat-label">Win Rate</div>
-              <div id="modal-winrate" class="stat-val tekken-font text-green">0%</div>
+
+            <div class="info-row">
+              <span class="info-label">Main Character:</span>
+              <span id="modal-main-detail" class="tekken-font main-char-value">Not specified</span>
+            </div>
+
+            <div class="info-row">
+              <span class="info-label">Country:</span>
+              <span id="modal-country-detail" class="font-bold country-detail-flex">Not specified</span>
             </div>
           </div>
 
-          <div>
-            <div class="winrate-header">
-              <span class="info-label">Match Win Rate</span>
-              <span id="modal-winrate-text" class="text-green font-bold">0%</span>
+          <!-- RIGHT COLUMN: ELO PROGRESSION GRAPH (SHOWN IF ELO HISTORY EXISTS) -->
+          <div id="elo-chart-col" class="elo-chart-col hidden">
+            <div class="chart-header">
+              <span class="info-label">📈 ELO Progression</span>
+              <div class="chart-summary-pills">
+                <span id="chart-peak-elo" class="chart-pill">Peak: 0</span>
+                <span id="chart-net-change" class="chart-pill">+0</span>
+              </div>
             </div>
-            <div class="bar-bg">
-              <div id="modal-winrate-bar" class="bar-fill"></div>
+            <div class="chart-box">
+              <div id="chart-tooltip" class="chart-tooltip hidden"></div>
+              <svg id="elo-chart-svg" viewBox="0 0 430 230" xmlns="http://www.w3.org/2000/svg"></svg>
             </div>
-          </div>
-
-          <div class="info-row">
-            <span class="info-label">Main Character:</span>
-            <span id="modal-main-detail" class="tekken-font main-char-value">Not specified</span>
-          </div>
-
-          <div class="info-row">
-            <span class="info-label">Country:</span>
-            <span id="modal-country-detail" class="font-bold country-detail-flex">Not specified</span>
           </div>
         </div>
 
-        <!-- RIGHT COLUMN: ELO PROGRESSION GRAPH (SHOWN IF ELO HISTORY EXISTS) -->
-        <div id="elo-chart-col" class="elo-chart-col hidden">
-          <div class="chart-header">
-            <span class="info-label">📈 ELO Progression</span>
-            <div class="chart-summary-pills">
-              <span id="chart-peak-elo" class="chart-pill">Peak: 0</span>
-              <span id="chart-net-change" class="chart-pill">+0</span>
+        <!-- BOTTOM SECTION IN MODAL: PLAYER'S HEAD-TO-HEAD MATCHUPS -->
+        <div id="modal-h2h-section" class="modal-h2h-section hidden">
+          <div class="modal-h2h-header">
+            <div>
+              <span class="info-label">⚔️ Head-to-Head Matchups</span>
+              <div id="modal-h2h-badges" class="modal-h2h-badges"></div>
             </div>
+            <input type="text" id="modal-h2h-filter" placeholder="Filter opponent..." class="modal-h2h-search">
           </div>
-          <div class="chart-box">
-            <div id="chart-tooltip" class="chart-tooltip hidden"></div>
-            <svg id="elo-chart-svg" viewBox="0 0 430 230" xmlns="http://www.w3.org/2000/svg"></svg>
-          </div>
+          <div id="modal-h2h-list" class="modal-h2h-list"></div>
         </div>
       </div>
     </div>
@@ -173,7 +222,6 @@
       </div>
 
       <div class="modal-body">
-
         <div class="info-row">
           <span class="info-label">📅 Date:</span>
           <span id="t-modal-date" class="font-bold">TBA</span>
