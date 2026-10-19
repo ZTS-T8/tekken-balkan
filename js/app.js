@@ -5,6 +5,7 @@ let currentDisplayedTournaments = [];
 
 // Head-to-Head State
 let h2hActiveEra = "T8";
+let currentModalPlayerName = "";
 let currentModalPlayerMatchups = [];
 
 function escapeHTML(str) {
@@ -69,16 +70,23 @@ function switchTab(tabKey) {
 
   document.getElementById("era-badge").innerText = meta.badge;
   document.getElementById("header-subtitle").innerHTML = meta.subtitle;
-  document.getElementById("search-input").placeholder = meta.searchPlaceholder;
+
+  const searchInput = document.getElementById("search-input");
+  searchInput.placeholder = meta.searchPlaceholder;
+  searchInput.classList.toggle("hidden", tabKey === "H2H");
 
   const isLeaderboard = tabKey === "T8" || tabKey === "T7";
-  document.getElementById("main-toolbar").classList.toggle("hidden", tabKey === "H2H");
   document.getElementById("leaderboard-section").classList.toggle("hidden", !isLeaderboard);
   document.getElementById("h2h-section").classList.toggle("hidden", tabKey !== "H2H");
   document.getElementById("tournaments-section").classList.toggle("hidden", tabKey !== "TOURNAMENTS");
 
   if (tabKey === "H2H") {
-    fetchH2HData(h2hActiveEra, false, () => renderCurrentView());
+    fetchTabData(h2hActiveEra, false, () => {
+      fetchH2HData(h2hActiveEra, false, () => {
+        populateH2HDropdowns();
+        renderH2HComparison();
+      });
+    });
   } else if (DATA_STORE[tabKey]) {
     renderCurrentView();
   } else {
@@ -92,7 +100,8 @@ function renderCurrentView() {
   if (currentTab === "TOURNAMENTS") {
     renderTournaments();
   } else if (currentTab === "H2H") {
-    renderH2HTab();
+    populateH2HDropdowns();
+    renderH2HComparison();
   } else {
     renderTable();
   }
@@ -100,8 +109,13 @@ function renderCurrentView() {
 
 function forceRefresh() {
   if (currentTab === "H2H") {
+    document.getElementById("h2h-result-container").innerHTML =
+      '<div class="empty-cell">Refreshing Head-to-Head records...</div>';
     DATA_STORE[`H2H_${h2hActiveEra}`] = null;
-    fetchH2HData(h2hActiveEra, true, () => renderH2HTab());
+    fetchH2HData(h2hActiveEra, true, () => {
+      populateH2HDropdowns();
+      renderH2HComparison();
+    });
     return;
   }
 
@@ -265,25 +279,52 @@ function renderTournaments() {
   container.innerHTML = html;
 }
 
-// Renders the dedicated ⚔️ Head-to-Head VS Comparator Tab
-function renderH2HTab() {
+// Populates the Player 1 and Player 2 <select> dropdowns once per era
+function populateH2HDropdowns() {
   const store = DATA_STORE[`H2H_${h2hActiveEra}`] || { recordsByPlayer: {}, players: [] };
   const leaderboardList = DATA_STORE[h2hActiveEra] || [];
 
-  // Populate datalist for autocomplete
-  const nameSet = new Set(store.players);
-  leaderboardList.forEach(p => nameSet.add(p.player));
-  const sortedNames = Array.from(nameSet).sort((a, b) => a.localeCompare(b));
+  const nameMap = new Map();
+  store.players.forEach(name => nameMap.set(name.toLowerCase(), name));
+  leaderboardList.forEach(p => {
+    if (!nameMap.has(p.player.toLowerCase())) {
+      nameMap.set(p.player.toLowerCase(), p.player);
+    }
+  });
 
-  const datalist = document.getElementById("h2h-players-datalist");
-  datalist.innerHTML = sortedNames.map(n => `<option value="${escapeHTML(n)}">`).join("");
+  const sortedNames = Array.from(nameMap.values()).sort((a, b) => a.localeCompare(b));
 
-  const p1Raw = document.getElementById("h2h-p1-input").value.trim();
-  const p2Raw = document.getElementById("h2h-p2-input").value.trim();
+  const p1Select = document.getElementById("h2h-p1-select");
+  const p2Select = document.getElementById("h2h-p2-select");
+  const prevP1 = p1Select.value;
+  const prevP2 = p2Select.value;
+
+  const optionsHtml = sortedNames
+    .map(n => `<option value="${escapeHTML(n)}">${escapeHTML(n)}</option>`)
+    .join("");
+
+  p1Select.innerHTML = `<option value="">— Select Player 1 (${sortedNames.length}) —</option>${optionsHtml}`;
+  p2Select.innerHTML = `<option value="">— Select Player 2 (${sortedNames.length}) —</option>${optionsHtml}`;
+
+  if (prevP1 && nameMap.has(prevP1.toLowerCase())) {
+    p1Select.value = nameMap.get(prevP1.toLowerCase());
+  }
+  if (prevP2 && nameMap.has(prevP2.toLowerCase())) {
+    p2Select.value = nameMap.get(prevP2.toLowerCase());
+  }
+}
+
+// Renders the Head-to-Head VS result banner
+function renderH2HComparison() {
+  const store = DATA_STORE[`H2H_${h2hActiveEra}`] || { recordsByPlayer: {}, players: [] };
+  const leaderboardList = DATA_STORE[h2hActiveEra] || [];
+
+  const p1Raw = document.getElementById("h2h-p1-select").value.trim();
+  const p2Raw = document.getElementById("h2h-p2-select").value.trim();
   const resultBox = document.getElementById("h2h-result-container");
 
   if (!p1Raw || !p2Raw) {
-    resultBox.innerHTML = `<div class="empty-cell">Select or type two players above to compare their Head-to-Head record in ${h2hActiveEra}.</div>`;
+    resultBox.innerHTML = `<div class="empty-cell">Select Player 1 and Player 2 from the dropdowns above to view their ${h2hActiveEra} Head-to-Head record.</div>`;
     return;
   }
 
@@ -291,7 +332,7 @@ function renderH2HTab() {
   const k2 = p2Raw.toLowerCase();
 
   if (k1 === k2) {
-    resultBox.innerHTML = `<div class="empty-cell">Please select two different players.</div>`;
+    resultBox.innerHTML = `<div class="empty-cell">Please select two different players to compare.</div>`;
     return;
   }
 
@@ -318,7 +359,7 @@ function renderH2HTab() {
         <div class="h2h-fighter-col">
           <div class="tekken-font h2h-fighter-name">${p1Display}</div>
           <div class="char-sub">
-            ${p1Profile ? `#${escapeHTML(p1Profile.rank)} • ${escapeHTML(p1Profile.elo)} ELO${p1Profile.main ? `• ${escapeHTML(p1Profile.main)}` : ""}` : "Unranked"}
+            ${p1Profile ? `#${escapeHTML(p1Profile.rank)} • ${escapeHTML(p1Profile.elo)} ELO${p1Profile.main ? ` • ${escapeHTML(p1Profile.main)}` : ""}` : "Unranked"}
           </div>
         </div>
 
@@ -331,7 +372,7 @@ function renderH2HTab() {
         <div class="h2h-fighter-col">
           <div class="tekken-font h2h-fighter-name">${p2Display}</div>
           <div class="char-sub">
-            ${p2Profile ? `#${escapeHTML(p2Profile.rank)} • ${escapeHTML(p2Profile.elo)} ELO${p2Profile.main ? `• ${escapeHTML(p2Profile.main)}` : ""}` : "Unranked"}
+            ${p2Profile ? `#${escapeHTML(p2Profile.rank)} • ${escapeHTML(p2Profile.elo)} ELO${p2Profile.main ? ` • ${escapeHTML(p2Profile.main)}` : ""}` : "Unranked"}
           </div>
         </div>
       </div>
@@ -356,14 +397,20 @@ function renderPlayerModalH2H(playerName, eraKey) {
   const badgesEl = document.getElementById("modal-h2h-badges");
   const filterInput = document.getElementById("modal-h2h-filter");
   filterInput.value = "";
+  currentModalPlayerName = playerName;
 
   const store = DATA_STORE[`H2H_${eraKey}`];
-  if (!store || !store.recordsByPlayer) {
-    sectionEl.classList.add("hidden");
+  if (!store) {
+    // If H2H CSV hasn't finished downloading yet, fetch it and then render
+    fetchH2HData(eraKey, false, () => {
+      if (document.getElementById("player-modal").classList.contains("open") && currentModalPlayerName === playerName) {
+        renderPlayerModalH2H(playerName, eraKey);
+      }
+    });
     return;
   }
 
-  const playerMap = store.recordsByPlayer[playerName.toLowerCase()];
+  const playerMap = (store.recordsByPlayer || {})[playerName.toLowerCase()];
   if (!playerMap) {
     sectionEl.classList.add("hidden");
     return;
@@ -377,8 +424,8 @@ function renderPlayerModalH2H(playerName, eraKey) {
 
   currentModalPlayerMatchups = matchups;
   sectionEl.classList.remove("hidden");
+  document.getElementById("player-modal-box").classList.add("has-chart");
 
-  // Find Most Played Rival & Biggest Nemesis
   const mostPlayed = matchups[0];
   const nemesis = [...matchups].sort((a, b) => b.losses - a.losses)[0];
 
@@ -411,7 +458,7 @@ function filterModalH2HList() {
     .map(m => {
       const scoreColor = m.wins > m.losses ? "var(--green)" : m.wins < m.losses ? "#fb7185" : "var(--text)";
       return `
-        <div class="h2h-matchup-pill">
+        <div class="h2h-matchup-pill" data-opp="${escapeHTML(m.opponent)}" title="Click to open full VS comparison">
           <span class="font-bold text-white">vs ${escapeHTML(m.opponent)}</span>
           <span class="tekken-font font-bold" style="color:${scoreColor}">
             ${m.wins} – ${m.losses} <small class="text-muted">(${m.winRate}%)</small>
@@ -563,9 +610,7 @@ function openPlayerModal(p) {
     chartCol.classList.add("hidden");
   }
 
-  // Render Player's Head-to-Head Matchup Log inside the modal
   renderPlayerModalH2H(p.player, activeEra);
-
   document.getElementById("player-modal").classList.add("open");
 }
 
@@ -640,22 +685,61 @@ document.addEventListener("DOMContentLoaded", () => {
     if (t) openTournamentModal(t);
   });
 
-  // H2H Tab Controls
+  // H2H Tab Era Switcher (T8 vs T7)
   document.querySelectorAll("[data-h2hera]").forEach(btn => {
     btn.addEventListener("click", () => {
       h2hActiveEra = btn.getAttribute("data-h2hera");
       document.querySelectorAll("[data-h2hera]").forEach(b => {
         b.classList.toggle("active", b.getAttribute("data-h2hera") === h2hActiveEra);
       });
-      fetchH2HData(h2hActiveEra, false, () => renderH2HTab());
+      fetchTabData(h2hActiveEra, false, () => {
+        fetchH2HData(h2hActiveEra, false, () => {
+          populateH2HDropdowns();
+          renderH2HComparison();
+        });
+      });
     });
   });
 
-  document.getElementById("h2h-p1-input").addEventListener("input", renderH2HTab);
-  document.getElementById("h2h-p2-input").addEventListener("input", renderH2HTab);
+  // H2H Dropdown Selection & Swap Button
+  document.getElementById("h2h-p1-select").addEventListener("change", renderH2HComparison);
+  document.getElementById("h2h-p2-select").addEventListener("change", renderH2HComparison);
+
+  document.getElementById("btn-h2h-swap").addEventListener("click", () => {
+    const p1Select = document.getElementById("h2h-p1-select");
+    const p2Select = document.getElementById("h2h-p2-select");
+    const temp = p1Select.value;
+    p1Select.value = p2Select.value;
+    p2Select.value = temp;
+    renderH2HComparison();
+  });
 
   // Filter opponents inside Player Modal H2H list
   document.getElementById("modal-h2h-filter").addEventListener("input", filterModalH2HList);
+
+  // Clicking an opponent pill inside the Player Modal jumps to the full H2H VS view
+  document.getElementById("modal-h2h-list").addEventListener("click", event => {
+    const pill = event.target.closest(".h2h-matchup-pill");
+    if (!pill) return;
+    const oppName = pill.getAttribute("data-opp");
+    if (!oppName || !currentModalPlayerName) return;
+
+    const targetEra = currentTab === "T7" ? "T7" : "T8";
+    h2hActiveEra = targetEra;
+    document.querySelectorAll("[data-h2hera]").forEach(b => {
+      b.classList.toggle("active", b.getAttribute("data-h2hera") === h2hActiveEra);
+    });
+
+    document.getElementById("player-modal").classList.remove("open");
+    switchTab("H2H");
+
+    fetchH2HData(h2hActiveEra, false, () => {
+      populateH2HDropdowns();
+      document.getElementById("h2h-p1-select").value = currentModalPlayerName;
+      document.getElementById("h2h-p2-select").value = oppName;
+      renderH2HComparison();
+    });
+  });
 
   // Hover tooltip on ELO chart data points
   const chartSvg = document.getElementById("elo-chart-svg");
