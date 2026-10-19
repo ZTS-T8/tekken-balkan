@@ -227,7 +227,29 @@ function normalizeTournamentRows(rawRows) {
   return clean;
 }
 
-// Parses a 2D Row-vs-Column H2H Matrix ("6-1", "-", or blank diagonal)
+// Helper: Parses "6-1", or recovers Google Sheets auto-formatted dates like "4-Jan" / "Jan-4"
+function parseScoreCell(cellStr) {
+  if (!cellStr || cellStr === "-" || cellStr === "—" || cellStr === "–") return null;
+
+  const stdMatch = cellStr.match(/^(\d+)\s*[-–:/]\s*(\d+)$/);
+  if (stdMatch) {
+    return [parseInt(stdMatch[1], 10), parseInt(stdMatch[2], 10)];
+  }
+
+  const months = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+  const m1 = cellStr.toLowerCase().match(/^(\d+)\s*[-/.\s]\s*([a-z]{3})/);
+  if (m1 && months[m1[2]]) {
+    return [parseInt(m1[1], 10), months[m1[2]]];
+  }
+  const m2 = cellStr.toLowerCase().match(/^([a-z]{3})\s*[-/.\s]\s*(\d+)/);
+  if (m2 && months[m2[1]]) {
+    return [months[m2[1]], parseInt(m2[2], 10)];
+  }
+
+  return null;
+}
+
+// Parses a 2D Row-vs-Column H2H Matrix ("6-1", "-", or "—")
 function parseH2HMatrix(matrixRows) {
   const recordsByPlayer = {};
   const playerNamesMap = {};
@@ -236,7 +258,17 @@ function parseH2HMatrix(matrixRows) {
     return { recordsByPlayer, players: [] };
   }
 
-  const headerRow = matrixRows[0];
+  // Find the header row (first row with at least 2 non-empty player names)
+  let headerRowIdx = 0;
+  for (let r = 0; r < Math.min(matrixRows.length, 5); r++) {
+    const nonEmptyCount = (matrixRows[r] || []).filter(c => String(c || "").trim() !== "").length;
+    if (nonEmptyCount >= 2) {
+      headerRowIdx = r;
+      break;
+    }
+  }
+
+  const headerRow = matrixRows[headerRowIdx];
   const colPlayers = [];
   for (let c = 1; c < headerRow.length; c++) {
     const colName = String(headerRow[c] || "").replace(/[\r\n]+/g, "").trim();
@@ -263,7 +295,7 @@ function parseH2HMatrix(matrixRows) {
     }
   };
 
-  for (let r = 1; r < matrixRows.length; r++) {
+  for (let r = headerRowIdx + 1; r < matrixRows.length; r++) {
     const row = matrixRows[r];
     if (!row || row.length === 0) continue;
 
@@ -276,18 +308,13 @@ function parseH2HMatrix(matrixRows) {
       if (!colPlayer) continue;
 
       const cell = String(row[c] || "").replace(/[\r\n]+/g, "").trim();
-      if (!cell || cell === "-") continue;
+      const parsed = parseScoreCell(cell);
+      if (!parsed) continue;
 
-      // Match "6-1", "6 - 1", "6:1", or "6–1"
-      const match = cell.match(/^(\d+)\s*[-–:]\s*(\d+)$/);
-      if (!match) continue;
-
-      const rowWins = parseInt(match[1], 10);
-      const colWins = parseInt(match[2], 10);
+      const [rowWins, colWins] = parsed;
       if (isNaN(rowWins) || isNaN(colWins) || (rowWins === 0 && colWins === 0)) continue;
 
       addRecord(rowPlayer, colPlayer, rowWins, colWins);
-      // Also ensure reverse direction is stored in case only half of the matrix is filled
       addRecord(colPlayer, rowPlayer, colWins, rowWins);
     }
   }
@@ -316,8 +343,8 @@ function fetchH2HData(eraKey, force = false, onComplete) {
 
   Papa.parse(fetchUrl, {
     download: true,
-    header: false, // 2D array mode for Row-vs-Column matrix
-    skipEmptyLines: "greedy",
+    header: false,
+    skipEmptyLines: false, // Prevents PapaParse from dropping or shifting cells in 2D matrices
     complete: function (results) {
       DATA_STORE[storeKey] = parseH2HMatrix(results.data || []);
       if (onComplete) onComplete(DATA_STORE[storeKey]);
