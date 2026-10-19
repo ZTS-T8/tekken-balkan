@@ -282,13 +282,15 @@ function renderTournaments() {
 // Populates the Player 1 and Player 2 <select> dropdowns once per era
 function populateH2HDropdowns() {
   const store = DATA_STORE[`H2H_${h2hActiveEra}`] || { recordsByPlayer: {}, players: [] };
-  const leaderboardList = DATA_STORE[h2hActiveEra] || [];
 
   const nameMap = new Map();
-  store.players.forEach(name => nameMap.set(name.toLowerCase(), name));
-  leaderboardList.forEach(p => {
-    if (!nameMap.has(p.player.toLowerCase())) {
-      nameMap.set(p.player.toLowerCase(), p.player);
+  Object.keys(store.recordsByPlayer || {}).forEach(key => {
+    const matchups = store.recordsByPlayer[key];
+    if (matchups && Object.keys(matchups).length > 0) {
+      // Find canonical display name from store.players or leaderboard
+      const display =
+        (store.players || []).find(n => n.toLowerCase() === key) || key;
+      nameMap.set(key, display);
     }
   });
 
@@ -308,9 +310,43 @@ function populateH2HDropdowns() {
 
   if (prevP1 && nameMap.has(prevP1.toLowerCase())) {
     p1Select.value = nameMap.get(prevP1.toLowerCase());
+  } else {
+    p1Select.value = "";
   }
+
   if (prevP2 && nameMap.has(prevP2.toLowerCase())) {
     p2Select.value = nameMap.get(prevP2.toLowerCase());
+  } else {
+    p2Select.value = "";
+  }
+}
+
+function updatePlayer2OptionsForPlayer1() {
+  const store = DATA_STORE[`H2H_${h2hActiveEra}`] || { recordsByPlayer: {}, players: [] };
+  const p1Raw = document.getElementById("h2h-p1-select").value.trim();
+  const p2Select = document.getElementById("h2h-p2-select");
+  const prevP2 = p2Select.value;
+
+  if (!p1Raw) {
+    populateH2HDropdowns();
+    return;
+  }
+
+  const p1Matchups = (store.recordsByPlayer || {})[p1Raw.toLowerCase()] || {};
+  const opponents = Object.values(p1Matchups)
+    .map(m => m.opponent)
+    .sort((a, b) => a.localeCompare(b));
+
+  const optionsHtml = opponents
+    .map(n => `<option value="${escapeHTML(n)}">${escapeHTML(n)}</option>`)
+    .join("");
+
+  p2Select.innerHTML = `<option value="">— Select Opponent (${opponents.length} played) —</option>${optionsHtml}`;
+
+  if (prevP2 && opponents.some(o => o.toLowerCase() === prevP2.toLowerCase())) {
+    p2Select.value = opponents.find(o => o.toLowerCase() === prevP2.toLowerCase());
+  } else {
+    p2Select.value = "";
   }
 }
 
@@ -702,7 +738,10 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // H2H Dropdown Selection & Swap Button
-  document.getElementById("h2h-p1-select").addEventListener("change", renderH2HComparison);
+  document.getElementById("h2h-p1-select").addEventListener("change", () => {
+    updatePlayer2OptionsForPlayer1();
+    renderH2HComparison();
+  });
   document.getElementById("h2h-p2-select").addEventListener("change", renderH2HComparison);
 
   document.getElementById("btn-h2h-swap").addEventListener("click", () => {
