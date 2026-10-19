@@ -3,6 +3,10 @@ let currentTab = "T8";
 let currentDisplayedList = [];
 let currentDisplayedTournaments = [];
 
+// Head-to-Head State
+let h2hActiveEra = "T8";
+let currentModalPlayerMatchups = [];
+
 function escapeHTML(str) {
   return String(str || "")
     .replace(/&/g, "&amp;")
@@ -55,7 +59,7 @@ function switchTab(tabKey) {
   currentPage = 1;
 
   trackEvent("Switch Tab", { tab: tabKey });
-  
+
   const meta = CONFIG.TAB_META[tabKey];
   document.body.className = meta.bodyClass;
 
@@ -67,11 +71,15 @@ function switchTab(tabKey) {
   document.getElementById("header-subtitle").innerHTML = meta.subtitle;
   document.getElementById("search-input").placeholder = meta.searchPlaceholder;
 
-  const isTournaments = tabKey === "TOURNAMENTS";
-  document.getElementById("leaderboard-section").classList.toggle("hidden", isTournaments);
-  document.getElementById("tournaments-section").classList.toggle("hidden", !isTournaments);
+  const isLeaderboard = tabKey === "T8" || tabKey === "T7";
+  document.getElementById("main-toolbar").classList.toggle("hidden", tabKey === "H2H");
+  document.getElementById("leaderboard-section").classList.toggle("hidden", !isLeaderboard);
+  document.getElementById("h2h-section").classList.toggle("hidden", tabKey !== "H2H");
+  document.getElementById("tournaments-section").classList.toggle("hidden", tabKey !== "TOURNAMENTS");
 
-  if (DATA_STORE[tabKey]) {
+  if (tabKey === "H2H") {
+    fetchH2HData(h2hActiveEra, false, () => renderCurrentView());
+  } else if (DATA_STORE[tabKey]) {
     renderCurrentView();
   } else {
     fetchTabData(tabKey, false, () => {
@@ -83,12 +91,20 @@ function switchTab(tabKey) {
 function renderCurrentView() {
   if (currentTab === "TOURNAMENTS") {
     renderTournaments();
+  } else if (currentTab === "H2H") {
+    renderH2HTab();
   } else {
     renderTable();
   }
 }
 
 function forceRefresh() {
+  if (currentTab === "H2H") {
+    DATA_STORE[`H2H_${h2hActiveEra}`] = null;
+    fetchH2HData(h2hActiveEra, true, () => renderH2HTab());
+    return;
+  }
+
   DATA_STORE[currentTab] = null;
   if (currentTab === "TOURNAMENTS") {
     document.getElementById("roadmap-list").innerHTML =
@@ -96,6 +112,8 @@ function forceRefresh() {
   } else {
     document.getElementById("leaderboard-body").innerHTML =
       '<tr><td colspan="6" class="empty-cell">Refreshing...</td></tr>';
+    DATA_STORE[`H2H_${currentTab}`] = null;
+    fetchH2HData(currentTab, true);
   }
 
   const activeTab = currentTab;
@@ -247,7 +265,163 @@ function renderTournaments() {
   container.innerHTML = html;
 }
 
-// Draws the SVG ELO Progression Graph (Y = ELO, X = Event Number)
+// Renders the dedicated ⚔️ Head-to-Head VS Comparator Tab
+function renderH2HTab() {
+  const store = DATA_STORE[`H2H_${h2hActiveEra}`] || { recordsByPlayer: {}, players: [] };
+  const leaderboardList = DATA_STORE[h2hActiveEra] || [];
+
+  // Populate datalist for autocomplete
+  const nameSet = new Set(store.players);
+  leaderboardList.forEach(p => nameSet.add(p.player));
+  const sortedNames = Array.from(nameSet).sort((a, b) => a.localeCompare(b));
+
+  const datalist = document.getElementById("h2h-players-datalist");
+  datalist.innerHTML = sortedNames.map(n => `<option value="${escapeHTML(n)}">`).join("");
+
+  const p1Raw = document.getElementById("h2h-p1-input").value.trim();
+  const p2Raw = document.getElementById("h2h-p2-input").value.trim();
+  const resultBox = document.getElementById("h2h-result-container");
+
+  if (!p1Raw || !p2Raw) {
+    resultBox.innerHTML = `<div class="empty-cell">Select or type two players above to compare their Head-to-Head record in ${h2hActiveEra}.</div>`;
+    return;
+  }
+
+  const k1 = p1Raw.toLowerCase();
+  const k2 = p2Raw.toLowerCase();
+
+  if (k1 === k2) {
+    resultBox.innerHTML = `<div class="empty-cell">Please select two different players.</div>`;
+    return;
+  }
+
+  const p1Profile = leaderboardList.find(p => p.player.toLowerCase() === k1);
+  const p2Profile = leaderboardList.find(p => p.player.toLowerCase() === k2);
+
+  const p1Matchups = store.recordsByPlayer[k1] || {};
+  const directRecord = p1Matchups[k2] || { wins: 0, losses: 0, total: 0, winRate: 50 };
+
+  const p1Wins = directRecord.wins;
+  const p2Wins = directRecord.losses;
+  const totalSets = p1Wins + p2Wins;
+  const p1Pct = totalSets > 0 ? Math.round((p1Wins / totalSets) * 100) : 50;
+  const p2Pct = totalSets > 0 ? 100 - p1Pct : 50;
+
+  const p1Display = escapeHTML(p1Profile ? p1Profile.player : p1Raw);
+  const p2Display = escapeHTML(p2Profile ? p2Profile.player : p2Raw);
+
+  trackEvent("Compare H2H", { p1: p1Display, p2: p2Display, era: h2hActiveEra });
+
+  resultBox.innerHTML = `
+    <div class="h2h-versus-banner">
+      <div class="h2h-score-row">
+        <div class="h2h-fighter-col">
+          <div class="tekken-font h2h-fighter-name">${p1Display}</div>
+          <div class="char-sub">
+            ${p1Profile ? `#${escapeHTML(p1Profile.rank)} • ${escapeHTML(p1Profile.elo)} ELO${p1Profile.main ? `• ${escapeHTML(p1Profile.main)}` : ""}` : "Unranked"}
+          </div>
+        </div>
+
+        <div class="tekken-font h2h-score-center">
+          <span style="color:var(--accent-light)">${p1Wins}</span>
+          <span class="text-muted" style="font-size:24px">–</span>
+          <span class="text-green">${p2Wins}</span>
+        </div>
+
+        <div class="h2h-fighter-col">
+          <div class="tekken-font h2h-fighter-name">${p2Display}</div>
+          <div class="char-sub">
+            ${p2Profile ? `#${escapeHTML(p2Profile.rank)} • ${escapeHTML(p2Profile.elo)} ELO${p2Profile.main ? `• ${escapeHTML(p2Profile.main)}` : ""}` : "Unranked"}
+          </div>
+        </div>
+      </div>
+
+      <div class="h2h-tug-bar">
+        <div class="h2h-tug-p1" style="width:${p1Pct}%"></div>
+        <div class="h2h-tug-p2" style="width:${p2Pct}%"></div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--muted); font-weight:700">
+        <span>${totalSets > 0 ? `${p1Pct}% Win Rate` : "No recorded sets"}</span>
+        <span>${totalSets} Total ${totalSets === 1 ? "Match" : "Matches"}</span>
+        <span>${totalSets > 0 ? `${p2Pct}% Win Rate` : "No recorded sets"}</span>
+      </div>
+    </div>
+  `;
+}
+
+// Renders the Head-to-Head matchup list inside the Player Modal
+function renderPlayerModalH2H(playerName, eraKey) {
+  const sectionEl = document.getElementById("modal-h2h-section");
+  const badgesEl = document.getElementById("modal-h2h-badges");
+  const filterInput = document.getElementById("modal-h2h-filter");
+  filterInput.value = "";
+
+  const store = DATA_STORE[`H2H_${eraKey}`];
+  if (!store || !store.recordsByPlayer) {
+    sectionEl.classList.add("hidden");
+    return;
+  }
+
+  const playerMap = store.recordsByPlayer[playerName.toLowerCase()];
+  if (!playerMap) {
+    sectionEl.classList.add("hidden");
+    return;
+  }
+
+  const matchups = Object.values(playerMap).sort((a, b) => b.total - a.total || b.wins - a.wins);
+  if (matchups.length === 0) {
+    sectionEl.classList.add("hidden");
+    return;
+  }
+
+  currentModalPlayerMatchups = matchups;
+  sectionEl.classList.remove("hidden");
+
+  // Find Most Played Rival & Biggest Nemesis
+  const mostPlayed = matchups[0];
+  const nemesis = [...matchups].sort((a, b) => b.losses - a.losses)[0];
+
+  let badgesHtml = "";
+  if (mostPlayed && mostPlayed.total > 0) {
+    badgesHtml += `<span class="chart-pill">🔥 Most Played: <strong>${escapeHTML(mostPlayed.opponent)}</strong> (${mostPlayed.wins}-${mostPlayed.losses})</span>`;
+  }
+  if (nemesis && nemesis.losses > 0) {
+    badgesHtml += `<span class="chart-pill">💀 Nemesis: <strong>${escapeHTML(nemesis.opponent)}</strong> (${nemesis.wins}-${nemesis.losses})</span>`;
+  }
+  badgesEl.innerHTML = badgesHtml;
+
+  filterModalH2HList();
+}
+
+function filterModalH2HList() {
+  const listEl = document.getElementById("modal-h2h-list");
+  const q = document.getElementById("modal-h2h-filter").value.toLowerCase().trim();
+
+  const filtered = q
+    ? currentModalPlayerMatchups.filter(m => m.opponent.toLowerCase().includes(q))
+    : currentModalPlayerMatchups;
+
+  if (filtered.length === 0) {
+    listEl.innerHTML = `<div class="text-muted" style="font-size:12px; padding:8px 0">No matching opponents found.</div>`;
+    return;
+  }
+
+  listEl.innerHTML = filtered
+    .map(m => {
+      const scoreColor = m.wins > m.losses ? "var(--green)" : m.wins < m.losses ? "#fb7185" : "var(--text)";
+      return `
+        <div class="h2h-matchup-pill">
+          <span class="font-bold text-white">vs ${escapeHTML(m.opponent)}</span>
+          <span class="tekken-font font-bold" style="color:${scoreColor}">
+            ${m.wins} – ${m.losses} <small class="text-muted">(${m.winRate}%)</small>
+          </span>
+        </div>
+      `;
+    })
+    .join("");
+}
+
 function renderEloChart(history) {
   const svg = document.getElementById("elo-chart-svg");
   const tooltip = document.getElementById("chart-tooltip");
@@ -258,14 +432,12 @@ function renderEloChart(history) {
   const maxVal = Math.max(...history);
   const netDiff = history[n - 1] - history[0];
 
-  // Update summary pills
   document.getElementById("chart-peak-elo").innerText = `Peak: ${Math.round(maxVal * 10) / 10}`;
   const netEl = document.getElementById("chart-net-change");
   const sign = netDiff >= 0 ? "+" : "";
   netEl.innerText = `${sign}${Math.round(netDiff * 10) / 10} ELO`;
   netEl.style.color = netDiff >= 0 ? "var(--green)" : "#fb7185";
 
-  // SVG dimensions & padding
   const width = 430;
   const height = 230;
   const padLeft = 48;
@@ -275,7 +447,6 @@ function renderEloChart(history) {
   const plotW = width - padLeft - padRight;
   const plotH = height - padTop - padBottom;
 
-  // Calculate nice Y-axis bounds
   const rawRange = maxVal - minVal;
   const buffer = rawRange === 0 ? 25 : rawRange * 0.12;
   const yMin = Math.floor((minVal - buffer) / 10) * 10;
@@ -294,7 +465,6 @@ function renderEloChart(history) {
     </defs>
   `;
 
-  // Y-Axis Gridlines & Labels (4 steps)
   const ySteps = 4;
   for (let s = 0; s <= ySteps; s++) {
     const val = yMin + (s / ySteps) * ySpan;
@@ -305,7 +475,6 @@ function renderEloChart(history) {
     `;
   }
 
-  // X-Axis Ticks & Event Number Labels
   const maxTicks = Math.min(n, 6);
   const tickIndices = new Set([0, n - 1]);
   for (let t = 1; t < maxTicks - 1; t++) {
@@ -322,7 +491,6 @@ function renderEloChart(history) {
       `;
     });
 
-  // Axis Titles
   svgHtml += `
     <line x1="${padLeft}" y1="${padTop}" x2="${padLeft}" y2="${padTop + plotH}" class="chart-axis-line" />
     <line x1="${padLeft}" y1="${padTop + plotH}" x2="${width - padRight}" y2="${padTop + plotH}" class="chart-axis-line" />
@@ -330,7 +498,6 @@ function renderEloChart(history) {
     <text x="12" y="${padTop + plotH / 2}" text-anchor="middle" transform="rotate(-90 12 ${padTop + plotH / 2})" class="chart-axis-title">ELO</text>
   `;
 
-  // Line & Area Polygon
   const coords = history.map((v, i) => `${getX(i).toFixed(1)},${getY(v).toFixed(1)}`);
   if (n > 1) {
     const areaPoints = `${getX(0).toFixed(1)},${(padTop + plotH).toFixed(1)} ${coords.join(" ")} ${getX(n - 1).toFixed(1)},${(padTop + plotH).toFixed(1)}`;
@@ -338,7 +505,6 @@ function renderEloChart(history) {
     svgHtml += `<polyline points="${coords.join(" ")}" class="chart-line" />`;
   }
 
-  // Data Points (with hover data attributes)
   const pointRadius = n > 20 ? 3 : 4;
   history.forEach((v, i) => {
     const cx = getX(i).toFixed(1);
@@ -350,8 +516,9 @@ function renderEloChart(history) {
 }
 
 function openPlayerModal(p) {
-  trackEvent("View Player Card", { player: p.player, era: currentTab, country: p.country || "Unknown" });
-  
+  const activeEra = currentTab === "T7" ? "T7" : "T8";
+  trackEvent("View Player Card", { player: p.player, era: activeEra, country: p.country || "Unknown" });
+
   document.getElementById("modal-rank").innerText = `#${p.rank}`;
   document.getElementById("modal-player").innerText = p.player;
   document.getElementById("modal-trend").innerHTML = renderTrendHtml(p.trend);
@@ -384,7 +551,6 @@ function openPlayerModal(p) {
   document.getElementById("modal-winrate-text").innerText = `${numericWinRate}%`;
   document.getElementById("modal-winrate-bar").style.width = `${Math.min(numericWinRate, 100)}%`;
 
-  // Show or hide the ELO History chart column
   const modalBox = document.getElementById("player-modal-box");
   const chartCol = document.getElementById("elo-chart-col");
 
@@ -397,12 +563,15 @@ function openPlayerModal(p) {
     chartCol.classList.add("hidden");
   }
 
+  // Render Player's Head-to-Head Matchup Log inside the modal
+  renderPlayerModalH2H(p.player, activeEra);
+
   document.getElementById("player-modal").classList.add("open");
 }
 
 function openTournamentModal(t) {
   trackEvent("View Tournament", { tournament: t.name, tier: t.tierLabel });
-  
+
   const statusEl = document.getElementById("t-modal-status");
   statusEl.className = `t-status ${t.statusType}`;
   statusEl.innerText =
@@ -471,6 +640,23 @@ document.addEventListener("DOMContentLoaded", () => {
     if (t) openTournamentModal(t);
   });
 
+  // H2H Tab Controls
+  document.querySelectorAll("[data-h2hera]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      h2hActiveEra = btn.getAttribute("data-h2hera");
+      document.querySelectorAll("[data-h2hera]").forEach(b => {
+        b.classList.toggle("active", b.getAttribute("data-h2hera") === h2hActiveEra);
+      });
+      fetchH2HData(h2hActiveEra, false, () => renderH2HTab());
+    });
+  });
+
+  document.getElementById("h2h-p1-input").addEventListener("input", renderH2HTab);
+  document.getElementById("h2h-p2-input").addEventListener("input", renderH2HTab);
+
+  // Filter opponents inside Player Modal H2H list
+  document.getElementById("modal-h2h-filter").addEventListener("input", filterModalH2HList);
+
   // Hover tooltip on ELO chart data points
   const chartSvg = document.getElementById("elo-chart-svg");
   const chartTooltip = document.getElementById("chart-tooltip");
@@ -501,9 +687,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === tournamentModal) tournamentModal.classList.remove("open");
   });
 
+  // Preload leaderboards, tournaments, and H2H matrices
   fetchTabData("T8", false, () => {
     if (currentTab === "T8") renderCurrentView();
   });
   fetchTabData("T7");
   fetchTabData("TOURNAMENTS");
+  fetchH2HData("T8");
+  fetchH2HData("T7");
 });
