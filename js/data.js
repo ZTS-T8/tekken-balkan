@@ -319,9 +319,14 @@ function parseH2HMatrix(matrixRows) {
     }
   }
 
+  const activeH2HPlayers = Object.keys(recordsByPlayer)
+    .filter(k => Object.keys(recordsByPlayer[k]).length > 0)
+    .map(k => playerNamesMap[k] || k)
+    .sort((a, b) => a.localeCompare(b));
+
   return {
     recordsByPlayer,
-    players: Object.values(playerNamesMap).sort((a, b) => a.localeCompare(b))
+    players: activeH2HPlayers
   };
 }
 
