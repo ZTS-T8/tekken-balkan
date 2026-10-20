@@ -6,8 +6,8 @@ const CONFIG = {
     T8: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=1897594659&single=true&output=csv",
     T7: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=1230236970&single=true&output=csv",
     TOURNAMENTS: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1Ny7bDXAZCYd_x433zEHdBiFk4VoMAWRLuXBrGZIn3D8-8QNSrwD7W-JD8a1jeA/pub?gid=975571095&single=true&output=csv",
-    H2H_T8: "https://docs.google.com/spreadsheets/d/e/2PACX-1vS-TiBDM5t_ZU24xaVu92X-8D7DPk71cO-Y-pUDAVg50PFTnEBxbu5wn7prmjVY8Q/pub?gid=65163702&single=true&output=csv", 
-    H2H_T7: "https://docs.google.com/spreadsheets/d/e/2PACX-1vS-TiBDM5t_ZU24xaVu92X-8D7DPk71cO-Y-pUDAVg50PFTnEBxbu5wn7prmjVY8Q/pub?gid=1173903879&single=true&output=csv"  
+    H2H_T8: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTYXJuDLyXg6kSHme6ftXCrCgNHcxxi5rR3_jWOmqsCMjEXt4AOuRy_GNiff7-n5g/pub?gid=278792601&single=true&output=csv", 
+    H2H_T7: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTYXJuDLyXg6kSHme6ftXCrCgNHcxxi5rR3_jWOmqsCMjEXt4AOuRy_GNiff7-n5g/pub?gid=1245602837&single=true&output=csv"  
   },
 
   // Maps country names/codes to 2-letter ISO codes for flagcdn.com
