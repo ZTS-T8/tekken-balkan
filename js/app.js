@@ -1,5 +1,6 @@
 let currentPage = 1;
-let currentTab = "T8";
+let currentTab = "LEADERBOARD";
+let leaderboardEra = "T8";
 let currentDisplayedList = [];
 let currentDisplayedTournaments = [];
 
@@ -54,6 +55,20 @@ function renderTrendHtml(trend) {
   return `<span class="trend-same" title="No rank change">—</span>`;
 }
 
+function applyHeaderMeta() {
+  const metaKey = currentTab === "LEADERBOARD" ? leaderboardEra : currentTab;
+  const meta = CONFIG.TAB_META[metaKey];
+  if (!meta) return;
+
+  document.body.className = meta.bodyClass;
+  document.getElementById("era-badge").innerText = meta.badge;
+  document.getElementById("header-subtitle").innerHTML = meta.subtitle;
+
+  const searchInput = document.getElementById("search-input");
+  searchInput.placeholder = meta.searchPlaceholder;
+  searchInput.classList.toggle("hidden", currentTab === "H2H");
+}
+
 function switchTab(tabKey) {
   if (currentTab === tabKey) return;
   currentTab = tabKey;
@@ -61,21 +76,14 @@ function switchTab(tabKey) {
 
   trackEvent("Switch Tab", { tab: tabKey });
 
-  const meta = CONFIG.TAB_META[tabKey];
-  document.body.className = meta.bodyClass;
-
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.classList.toggle("active", btn.getAttribute("data-tab") === tabKey);
   });
 
-  document.getElementById("era-badge").innerText = meta.badge;
-  document.getElementById("header-subtitle").innerHTML = meta.subtitle;
+  applyHeaderMeta();
 
-  const searchInput = document.getElementById("search-input");
-  searchInput.placeholder = meta.searchPlaceholder;
-  searchInput.classList.toggle("hidden", tabKey === "H2H");
-
-  const isLeaderboard = tabKey === "T8" || tabKey === "T7";
+  const isLeaderboard = tabKey === "LEADERBOARD";
+  document.getElementById("leaderboard-era-switch").classList.toggle("hidden", !isLeaderboard);
   document.getElementById("leaderboard-section").classList.toggle("hidden", !isLeaderboard);
   document.getElementById("h2h-section").classList.toggle("hidden", tabKey !== "H2H");
   document.getElementById("tournaments-section").classList.toggle("hidden", tabKey !== "TOURNAMENTS");
@@ -87,12 +95,43 @@ function switchTab(tabKey) {
         renderH2HComparison();
       });
     });
+  } else if (tabKey === "LEADERBOARD") {
+    if (DATA_STORE[leaderboardEra]) {
+      renderTable();
+    } else {
+      fetchTabData(leaderboardEra, false, () => {
+        if (currentTab === "LEADERBOARD") renderTable();
+      });
+    }
   } else if (DATA_STORE[tabKey]) {
     renderCurrentView();
   } else {
     fetchTabData(tabKey, false, () => {
       if (currentTab === tabKey) renderCurrentView();
     });
+  }
+}
+
+function switchLeaderboardEra(eraKey) {
+  if (leaderboardEra === eraKey) return;
+  leaderboardEra = eraKey;
+  currentPage = 1;
+
+  trackEvent("Switch Leaderboard Era", { era: eraKey });
+
+  document.querySelectorAll("[data-lbera]").forEach(btn => {
+    btn.classList.toggle("active", btn.getAttribute("data-lbera") === eraKey);
+  });
+
+  if (currentTab === "LEADERBOARD") {
+    applyHeaderMeta();
+    if (DATA_STORE[leaderboardEra]) {
+      renderTable();
+    } else {
+      fetchTabData(leaderboardEra, false, () => {
+        if (currentTab === "LEADERBOARD") renderTable();
+      });
+    }
   }
 }
 
@@ -119,20 +158,28 @@ function forceRefresh() {
     return;
   }
 
-  DATA_STORE[currentTab] = null;
   if (currentTab === "TOURNAMENTS") {
+    DATA_STORE["TOURNAMENTS"] = null;
     document.getElementById("roadmap-list").innerHTML =
       '<div class="empty-cell">Refreshing tournaments...</div>';
-  } else {
-    document.getElementById("leaderboard-body").innerHTML =
-      '<tr><td colspan="6" class="empty-cell">Refreshing...</td></tr>';
-    DATA_STORE[`H2H_${currentTab}`] = null;
-    fetchH2HData(currentTab, true);
+    fetchTabData("TOURNAMENTS", true, () => {
+      if (currentTab === "TOURNAMENTS") renderTournaments();
+    });
+    return;
   }
 
-  const activeTab = currentTab;
-  fetchTabData(activeTab, true, () => {
-    if (currentTab === activeTab) renderCurrentView();
+  // Refresh active Leaderboard Era (T8 or T7) + its H2H matrix
+  const activeEra = leaderboardEra;
+  DATA_STORE[activeEra] = null;
+  DATA_STORE[`H2H_${activeEra}`] = null;
+  document.getElementById("leaderboard-body").innerHTML =
+    '<tr><td colspan="6" class="empty-cell">Refreshing...</td></tr>';
+
+  fetchH2HData(activeEra, true);
+  fetchTabData(activeEra, true, () => {
+    if (currentTab === "LEADERBOARD" && leaderboardEra === activeEra) {
+      renderTable();
+    }
   });
 }
 
@@ -143,7 +190,7 @@ function changePage(newPage) {
 }
 
 function renderTable() {
-  const allData = DATA_STORE[currentTab] || [];
+  const allData = DATA_STORE[leaderboardEra] || [];
   const query = document.getElementById("search-input").value.toLowerCase().trim();
 
   const filtered = query
@@ -279,7 +326,7 @@ function renderTournaments() {
   container.innerHTML = html;
 }
 
-// Populates the Player 1 and Player 2 <select> dropdowns once per era
+// Populates the Player 1 and Player 2 <select> dropdowns ONLY with players who have H2H data
 function populateH2HDropdowns() {
   const store = DATA_STORE[`H2H_${h2hActiveEra}`] || { recordsByPlayer: {}, players: [] };
 
@@ -287,7 +334,6 @@ function populateH2HDropdowns() {
   Object.keys(store.recordsByPlayer || {}).forEach(key => {
     const matchups = store.recordsByPlayer[key];
     if (matchups && Object.keys(matchups).length > 0) {
-      // Find canonical display name from store.players or leaderboard
       const display =
         (store.players || []).find(n => n.toLowerCase() === key) || key;
       nameMap.set(key, display);
@@ -321,36 +367,6 @@ function populateH2HDropdowns() {
   }
 }
 
-function updatePlayer2OptionsForPlayer1() {
-  const store = DATA_STORE[`H2H_${h2hActiveEra}`] || { recordsByPlayer: {}, players: [] };
-  const p1Raw = document.getElementById("h2h-p1-select").value.trim();
-  const p2Select = document.getElementById("h2h-p2-select");
-  const prevP2 = p2Select.value;
-
-  if (!p1Raw) {
-    populateH2HDropdowns();
-    return;
-  }
-
-  const p1Matchups = (store.recordsByPlayer || {})[p1Raw.toLowerCase()] || {};
-  const opponents = Object.values(p1Matchups)
-    .map(m => m.opponent)
-    .sort((a, b) => a.localeCompare(b));
-
-  const optionsHtml = opponents
-    .map(n => `<option value="${escapeHTML(n)}">${escapeHTML(n)}</option>`)
-    .join("");
-
-  p2Select.innerHTML = `<option value="">— Select Opponent (${opponents.length} played) —</option>${optionsHtml}`;
-
-  if (prevP2 && opponents.some(o => o.toLowerCase() === prevP2.toLowerCase())) {
-    p2Select.value = opponents.find(o => o.toLowerCase() === prevP2.toLowerCase());
-  } else {
-    p2Select.value = "";
-  }
-}
-
-// Renders the Head-to-Head VS result banner
 function renderH2HComparison() {
   const store = DATA_STORE[`H2H_${h2hActiveEra}`] || { recordsByPlayer: {}, players: [] };
   const leaderboardList = DATA_STORE[h2hActiveEra] || [];
@@ -427,7 +443,6 @@ function renderH2HComparison() {
   `;
 }
 
-// Renders the Head-to-Head matchup list inside the Player Modal
 function renderPlayerModalH2H(playerName, eraKey) {
   const sectionEl = document.getElementById("modal-h2h-section");
   const badgesEl = document.getElementById("modal-h2h-badges");
@@ -437,7 +452,6 @@ function renderPlayerModalH2H(playerName, eraKey) {
 
   const store = DATA_STORE[`H2H_${eraKey}`];
   if (!store) {
-    // If H2H CSV hasn't finished downloading yet, fetch it and then render
     fetchH2HData(eraKey, false, () => {
       if (document.getElementById("player-modal").classList.contains("open") && currentModalPlayerName === playerName) {
         renderPlayerModalH2H(playerName, eraKey);
@@ -599,7 +613,7 @@ function renderEloChart(history) {
 }
 
 function openPlayerModal(p) {
-  const activeEra = currentTab === "T7" ? "T7" : "T8";
+  const activeEra = leaderboardEra;
   trackEvent("View Player Card", { player: p.player, era: activeEra, country: p.country || "Unknown" });
 
   document.getElementById("modal-rank").innerText = `#${p.rank}`;
@@ -692,8 +706,14 @@ function openTournamentModal(t) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Top 3 Main Tabs (Leaderboard, Head-to-Head, Tournaments)
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.addEventListener("click", () => switchTab(btn.getAttribute("data-tab")));
+  });
+
+  // Leaderboard Era Switcher (Tekken 8 vs Tekken 7 Legacy)
+  document.querySelectorAll("[data-lbera]").forEach(btn => {
+    btn.addEventListener("click", () => switchLeaderboardEra(btn.getAttribute("data-lbera")));
   });
 
   document.getElementById("search-input").addEventListener("input", () => {
@@ -738,10 +758,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // H2H Dropdown Selection & Swap Button
-  document.getElementById("h2h-p1-select").addEventListener("change", () => {
-    updatePlayer2OptionsForPlayer1();
-    renderH2HComparison();
-  });
+  document.getElementById("h2h-p1-select").addEventListener("change", renderH2HComparison);
   document.getElementById("h2h-p2-select").addEventListener("change", renderH2HComparison);
 
   document.getElementById("btn-h2h-swap").addEventListener("click", () => {
@@ -763,8 +780,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const oppName = pill.getAttribute("data-opp");
     if (!oppName || !currentModalPlayerName) return;
 
-    const targetEra = currentTab === "T7" ? "T7" : "T8";
-    h2hActiveEra = targetEra;
+    h2hActiveEra = leaderboardEra;
     document.querySelectorAll("[data-h2hera]").forEach(b => {
       b.classList.toggle("active", b.getAttribute("data-h2hera") === h2hActiveEra);
     });
@@ -812,7 +828,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Preload leaderboards, tournaments, and H2H matrices
   fetchTabData("T8", false, () => {
-    if (currentTab === "T8") renderCurrentView();
+    if (currentTab === "LEADERBOARD" && leaderboardEra === "T8") renderTable();
   });
   fetchTabData("T7");
   fetchTabData("TOURNAMENTS");
