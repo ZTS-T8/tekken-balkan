@@ -36,9 +36,9 @@
         Official Tekken Balkan community leaderboard. Click on any <strong class="text-white">Top 200</strong> player for detailed stats & H2H.
       </p>
 
+      <!-- 3 MAIN TABS -->
       <div class="tabs">
-        <button id="btn-t8" data-tab="T8" type="button" class="tab-btn tekken-font active">🔥 Tekken 8</button>
-        <button id="btn-t7" data-tab="T7" type="button" class="tab-btn tekken-font">🏆 Tekken 7 Legacy</button>
+        <button id="btn-leaderboard" data-tab="LEADERBOARD" type="button" class="tab-btn tekken-font active">🏆 Leaderboard</button>
         <button id="btn-h2h" data-tab="H2H" type="button" class="tab-btn tekken-font">⚔️ Head-to-Head</button>
         <button id="btn-tournaments" data-tab="TOURNAMENTS" type="button" class="tab-btn tekken-font">📅 Tournaments</button>
       </div>
@@ -46,10 +46,17 @@
   </header>
 
   <main class="container">
-    <div id="main-toolbar" class="toolbar">
+    <!-- TOOLBAR (SEARCH + REFRESH + LEADERBOARD ERA SWITCHER) -->
+    <div id="main-toolbar" class="toolbar" style="justify-content: space-between;">
       <div class="search-box">
         <input type="text" id="search-input" placeholder="Search player..." class="search-input">
         <button id="btn-refresh" type="button" class="refresh-btn" title="Fetch latest updates from Google Sheets">↻ Refresh</button>
+      </div>
+
+      <!-- TEKKEN 8 / TEKKEN 7 SWITCHER (VISIBLE ON LEADERBOARD TAB) -->
+      <div id="leaderboard-era-switch" class="era-mini-switch">
+        <button type="button" data-lbera="T8" class="mini-era-btn tekken-font active">🔥 Tekken 8</button>
+        <button type="button" data-lbera="T7" class="mini-era-btn tekken-font">🏆 Tekken 7 Legacy</button>
       </div>
     </div>
 
@@ -90,8 +97,8 @@
             <p class="h2h-section-sub">Select any two players below to compare direct tournament set records</p>
           </div>
           <div class="era-mini-switch">
-            <button type="button" data-h2hera="T8" class="mini-era-btn active">🔥 Tekken 8 H2H</button>
-            <button type="button" data-h2hera="T7" class="mini-era-btn">🏆 Tekken 7 H2H</button>
+            <button type="button" data-h2hera="T8" class="mini-era-btn tekken-font active">🔥 Tekken 8 H2H</button>
+            <button type="button" data-h2hera="T7" class="mini-era-btn tekken-font">🏆 Tekken 7 H2H</button>
           </div>
         </div>
 
